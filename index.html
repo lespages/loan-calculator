@@ -1041,6 +1041,16 @@
 
         function renderLoans() {
             const grid = document.getElementById('loansGrid');
+            
+            // Save the state of which schedules are visible
+            const scheduleStates = {};
+            loans.forEach(loan => {
+                const scheduleDiv = document.getElementById(`schedule-${loan.id}`);
+                if (scheduleDiv) {
+                    scheduleStates[loan.id] = scheduleDiv.classList.contains('show');
+                }
+            });
+            
             grid.innerHTML = '';
 
             loans.forEach((loan, index) => {
@@ -1126,6 +1136,16 @@
                 // Re-render results if they exist
                 if (loan.monthlyPayment) {
                     renderLoanResults(loan.id);
+                    
+                    // Restore the schedule visibility state
+                    if (scheduleStates[loan.id]) {
+                        setTimeout(() => {
+                            const scheduleDiv = document.getElementById(`schedule-${loan.id}`);
+                            if (scheduleDiv) {
+                                scheduleDiv.classList.add('show');
+                            }
+                        }, 10);
+                    }
                 }
             });
 
