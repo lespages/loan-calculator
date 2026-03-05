@@ -1122,6 +1122,11 @@
                     <div id="results-${loan.id}"></div>
                 `;
                 grid.appendChild(card);
+                
+                // Re-render results if they exist
+                if (loan.monthlyPayment) {
+                    renderLoanResults(loan.id);
+                }
             });
 
             if (loans.length === 0) {
