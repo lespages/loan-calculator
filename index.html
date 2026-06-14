@@ -119,7 +119,12 @@ h1 { color:white; text-align:center; margin-bottom:25px; font-size:1.8em; }
       <h3 style="color:white;margin-bottom:5px;">💡 Debt Consolidation Advisor</h3>
       <p style="color:rgba(255,255,255,0.85);font-size:0.85em;margin-bottom:15px;">What if you got a personal loan at a lower rate to wipe out your high-interest debts?</p>
       <div style="background:white;border-radius:8px;padding:20px;">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div class="input-group">
+            <label style="color:#f5576c;font-weight:600;">💰 Loan Amount You Can Get</label>
+            <input type="number" id="consolidateAmount" placeholder="e.g. 15000" oninput="calcConsolidation()" style="border-color:#f5576c;">
+            <small>How much you're approved for</small>
+          </div>
           <div class="input-group">
             <label style="color:#f5576c;font-weight:600;">📉 New Loan Interest Rate (%)</label>
             <input type="number" step="0.1" id="consolidateRate" placeholder="e.g. 12" oninput="calcConsolidation()" style="border-color:#f5576c;">
@@ -463,113 +468,144 @@ function calcBudget(){
 function autofill(a){document.getElementById('totalBudget').value=Math.round(a);runStrategy();document.getElementById('overviewCard').scrollIntoView({behavior:'smooth'});}
 
 function calcConsolidation(){
-  const newRate=parseFloat(document.getElementById('consolidateRate').value)||0;
+  const loanAmount=parseFloat(document.getElementById('consolidateAmount').value)||0;
+  const newRatePA=parseFloat(document.getElementById('consolidateRate').value)||0;
   const newMonths=parseInt(document.getElementById('consolidateMonths').value)||0;
   const res=document.getElementById('consolidationResults');
   const active=loans.filter(l=>l.schedule);
-  if(!active.length||!newRate||!newMonths){res.innerHTML='';return;}
-
-  // Separate debts: high-interest (worth consolidating) vs low-interest (keep as is)
-  const newMonthlyRate=newRate/12;
-  const worthConsolidating=active.filter(l=>l.rate>newMonthlyRate);
-  const keepSeparate=active.filter(l=>l.rate<=newMonthlyRate);
-
-  if(worthConsolidating.length===0){
-    res.innerHTML='<div style="background:#e8f5e9;padding:12px;border-radius:8px;color:#2e7d32;font-weight:600;">✅ Your current rates are already lower than '+newRate+'%! No consolidation needed.</div>';
-    return;
-  }
-
-  // Total balance to consolidate
-  const consolidateAmount=worthConsolidating.reduce((s,l)=>s+l.principal,0);
-
-  // New loan monthly payment
-  const r=newMonthlyRate/100;
-  const newMonthlyPayment=consolidateAmount*(r*Math.pow(1+r,newMonths))/(Math.pow(1+r,newMonths)-1);
-  const newTotalPayment=newMonthlyPayment*newMonths;
-  const newTotalInterest=newTotalPayment-consolidateAmount;
-
-  // What you'd pay WITHOUT consolidation (original plans)
-  const oldTotalInterest=worthConsolidating.reduce((s,l)=>s+l.totalInterest,0);
-  const oldMonthlyPayment=worthConsolidating.reduce((s,l)=>s+l.monthlyPayment,0);
-  const interestSaved=oldTotalInterest-newTotalInterest;
-  const monthlySaved=oldMonthlyPayment-newMonthlyPayment;
-
-  // Budget freed up for remaining debts
-  const remainingDebtPayment=keepSeparate.reduce((s,l)=>s+l.monthlyPayment,0);
-  const totalNewMonthly=newMonthlyPayment+remainingDebtPayment;
+  if(!active.length||!loanAmount||!newRatePA||!newMonths){res.innerHTML='';return;}
 
   const ti_map={'credit-card':'💳','personal-loan':'🏦','family-loan':'👨‍👩‍👧','pawn':'💎','other':'📋'};
+  const newMonthlyRate=newRatePA/12;
+
+  // EIR (Effective Interest Rate) approximation for an add-on/flat-rate style loan
+  // EIR ≈ 2 × N × Nominal Rate / (N+1)  — the common approximation for monthly-reducing add-on loans
+  const eirApprox=(2*newMonths*newRatePA)/(newMonths+1)/100; // as decimal annual
+  const eirPct=eirApprox*100;
+
+  // Sort debts highest rate first (avalanche) - that's where the new loan does the most good
+  const sorted=[...active].sort((a,b)=>b.rate-a.rate);
+
+  // Allocate the loan amount to debts, highest rate first, until it runs out
+  let remaining=loanAmount;
+  const allocations=[];
+  sorted.forEach(l=>{
+    if(remaining<=0){allocations.push({loan:l,amount:0,fullyCovered:false});return;}
+    const amt=Math.min(remaining,l.principal);
+    allocations.push({loan:l,amount:amt,fullyCovered:amt>=l.principal-0.5});
+    remaining-=amt;
+  });
+
+  const fullyPaidOff=allocations.filter(a=>a.fullyCovered&&a.amount>0);
+  const partiallyPaid=allocations.filter(a=>!a.fullyCovered&&a.amount>0);
+  const untouched=allocations.filter(a=>a.amount===0);
+  const leftoverCash=Math.max(0,remaining); // if loan amount > total debt
+
+  // New consolidation loan repayment
+  const r=newMonthlyRate/100;
+  const newMonthlyPayment=loanAmount*(r*Math.pow(1+r,newMonths))/(Math.pow(1+r,newMonths)-1);
+  const newTotalPayment=newMonthlyPayment*newMonths;
+  const newTotalInterest=newTotalPayment-loanAmount;
+
+  // Old situation for debts that get touched
+  const touchedLoans=allocations.filter(a=>a.amount>0).map(a=>a.loan);
+  const oldMonthlyTouched=touchedLoans.reduce((s,l)=>s+l.monthlyPayment,0);
+  const oldInterestTouched=touchedLoans.reduce((s,l)=>{
+    // for partial payoff, approximate interest proportionally
+    const alloc=allocations.find(a=>a.loan===l);
+    const portion=alloc.amount/l.principal;
+    return s+l.totalInterest*portion;
+  },0);
+
+  // Remaining payment for partially-paid debts (on the leftover balance, same rate/term)
+  let partialRemainingMonthly=0;
+  partiallyPaid.forEach(a=>{
+    const leftoverBalance=a.loan.principal-a.amount;
+    if(leftoverBalance>0.5){
+      const lr=a.loan.rate/100;
+      const mp=leftoverBalance*(lr*Math.pow(1+lr,a.loan.months))/(Math.pow(1+lr,a.loan.months)-1);
+      partialRemainingMonthly+=mp;
+    }
+  });
+
+  const untouchedMonthly=untouched.reduce((s,a)=>s+a.loan.monthlyPayment,0);
+  const totalNewMonthly=newMonthlyPayment+partialRemainingMonthly+untouchedMonthly;
+  const oldTotalMonthly=active.reduce((s,l)=>s+l.monthlyPayment,0);
+  const monthlySaved=oldTotalMonthly-totalNewMonthly;
+  const interestSaved=oldInterestTouched-newTotalInterest;
 
   let h='';
 
-  // Recommendation header
-  if(interestSaved>0){
-    h+='<div style="background:#e8f5e9;padding:15px;border-radius:8px;margin-bottom:15px;border:2px solid #4caf50;">';
-    h+='<div style="font-weight:bold;color:#2e7d32;font-size:1.1em;margin-bottom:5px;">✅ Consolidation Recommended!</div>';
-    h+='<div style="font-size:0.9em;color:#388e3c;">You\'d save <strong>$'+fmt(interestSaved)+'</strong> in interest and <strong>$'+fmt(monthlySaved)+'</strong>/month in payments</div>';
-    h+='</div>';
-  } else {
-    h+='<div style="background:#ffebee;padding:15px;border-radius:8px;margin-bottom:15px;border:2px solid #f44336;">';
-    h+='<div style="font-weight:bold;color:#c62828;font-size:1.1em;margin-bottom:5px;">⚠️ Not Worth It</div>';
-    h+='<div style="font-size:0.9em;color:#d32f2f;">At '+newRate+'% you\'d pay <strong>$'+fmt(Math.abs(interestSaved))+'</strong> MORE in interest. Try a lower rate.</div>';
+  // Rate explanation box
+  h+='<div style="background:#f3e5f5;padding:12px;border-radius:8px;margin-bottom:15px;border-left:4px solid #9c27b0;">';
+  h+='<div style="font-weight:bold;color:#6a1b9a;margin-bottom:6px;">📐 Understanding Your New Loan Rate</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:0.85em;">';
+  h+='<div><div style="color:#666;">Nominal Rate (p.a.)</div><div style="font-weight:bold;color:#6a1b9a;font-size:1.2em;">'+newRatePA.toFixed(2)+'%</div><div style="color:#999;font-size:0.85em;">The rate you were quoted</div></div>';
+  h+='<div><div style="color:#666;">Effective Interest Rate (EIR)</div><div style="font-weight:bold;color:#ad1457;font-size:1.2em;">~'+eirPct.toFixed(2)+'%</div><div style="color:#999;font-size:0.85em;">True cost if rate applies to original amount each month</div></div>';
+  h+='</div>';
+  h+='<div style="font-size:0.8em;color:#888;margin-top:8px;">💡 Many personal loans quote a flat/add-on rate (p.a.) but charge interest on the <em>original</em> balance every month, not the reducing balance. EIR reflects the true annualized cost — always compare EIR across loan offers, not just p.a.</div>';
+  h+='</div>';
+
+  // Allocation summary
+  h+='<div style="background:#fce4ec;padding:15px;border-radius:8px;margin-bottom:15px;text-align:center;">';
+  h+='<div style="font-size:0.9em;color:#880e4f;margin-bottom:5px;">💰 Loan Amount</div>';
+  h+='<div style="font-size:2.2em;font-weight:bold;color:#c2185b;">$'+fmt(loanAmount)+'</div>';
+  h+='<div style="font-size:0.85em;color:#ad1457;margin-top:5px;">'+newRatePA.toFixed(2)+'% p.a. (≈'+eirPct.toFixed(2)+'% EIR) over '+newMonths+' months → $'+fmt(newMonthlyPayment)+'/mo</div>';
+  h+='</div>';
+
+  if(leftoverCash>0.5){
+    h+='<div style="background:#e8f5e9;padding:12px;border-radius:8px;margin-bottom:15px;color:#2e7d32;">';
+    h+='✅ This amount covers <strong>ALL your debts</strong> with <strong>$'+fmt(leftoverCash)+'</strong> left over!';
     h+='</div>';
   }
 
-  // The loan amount
-  h+='<div style="background:#fce4ec;padding:15px;border-radius:8px;margin-bottom:15px;text-align:center;">';
-  h+='<div style="font-size:0.9em;color:#880e4f;margin-bottom:5px;">💰 Preferred Consolidation Loan Amount</div>';
-  h+='<div style="font-size:2.2em;font-weight:bold;color:#c2185b;">$'+fmt(consolidateAmount)+'</div>';
-  h+='<div style="font-size:0.85em;color:#ad1457;margin-top:5px;">at '+newRate+'% over '+newMonths+' months</div>';
-  h+='</div>';
-
-  // Side by side comparison
-  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px;">';
-  h+='<div style="background:#ffebee;padding:12px;border-radius:8px;">';
-  h+='<div style="font-weight:bold;color:#c62828;margin-bottom:8px;font-size:0.9em;">❌ WITHOUT Consolidation</div>';
-  h+='<div style="font-size:0.85em;color:#666;margin-bottom:4px;">Monthly Payment:</div>';
-  h+='<div style="font-weight:bold;color:#c62828;margin-bottom:8px;">$'+fmt(oldMonthlyPayment)+'/mo</div>';
-  h+='<div style="font-size:0.85em;color:#666;margin-bottom:4px;">Total Interest:</div>';
-  h+='<div style="font-weight:bold;color:#c62828;">$'+fmt(oldTotalInterest)+'</div>';
-  h+='</div>';
-  h+='<div style="background:#e8f5e9;padding:12px;border-radius:8px;">';
-  h+='<div style="font-weight:bold;color:#2e7d32;margin-bottom:8px;font-size:0.9em;">✅ WITH Consolidation</div>';
-  h+='<div style="font-size:0.85em;color:#666;margin-bottom:4px;">Monthly Payment:</div>';
-  h+='<div style="font-weight:bold;color:#2e7d32;margin-bottom:8px;">$'+fmt(newMonthlyPayment)+'/mo</div>';
-  h+='<div style="font-size:0.85em;color:#666;margin-bottom:4px;">Total Interest:</div>';
-  h+='<div style="font-weight:bold;color:#2e7d32;">$'+fmt(newTotalInterest)+'</div>';
-  h+='</div></div>';
-
-  // Which debts to consolidate
+  // Where the money goes
   h+='<div style="background:#f8f9ff;padding:12px;border-radius:8px;margin-bottom:12px;">';
-  h+='<div style="font-weight:bold;color:#667eea;margin-bottom:10px;">🎯 Debts to Consolidate (rate > '+newRate+'%)</div>';
-  worthConsolidating.forEach(l=>{
-    h+='<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #e8eaff;font-size:0.9em;">';
-    h+='<span>'+(ti_map[l.debtType]||'📋')+' '+l.name+' <span style="color:#f44336;">('+l.yearlyRate.toFixed(1)+'% APR)</span></span>';
-    h+='<span style="font-weight:bold;color:#667eea;">$'+fmt(l.principal)+'</span>';
+  h+='<div style="font-weight:bold;color:#667eea;margin-bottom:10px;">🎯 Recommended Allocation (highest interest first)</div>';
+  allocations.forEach(a=>{
+    if(a.amount<=0)return;
+    h+='<div style="padding:8px 0;border-bottom:1px solid #e8eaff;">';
+    h+='<div style="display:flex;justify-content:space-between;font-size:0.9em;">';
+    h+='<span>'+(ti_map[a.loan.debtType]||'📋')+' '+a.loan.name+' <span style="color:#f44336;">('+a.loan.yearlyRate.toFixed(1)+'% APR)</span></span>';
+    h+='<span style="font-weight:bold;color:'+(a.fullyCovered?'#4caf50':'#ff9800')+';">$'+fmt(a.amount)+(a.fullyCovered?' (FULL)':' (PARTIAL)')+'</span>';
+    h+='</div>';
+    if(!a.fullyCovered)h+='<div style="font-size:0.8em;color:#999;margin-top:3px;">Remaining balance: $'+fmt(a.loan.principal-a.amount)+' stays at '+a.loan.yearlyRate.toFixed(1)+'%</div>';
     h+='</div>';
   });
-  h+='<div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:bold;">';
-  h+='<span>Total to consolidate:</span><span style="color:#c2185b;">$'+fmt(consolidateAmount)+'</span>';
-  h+='</div></div>';
+  h+='</div>';
 
-  if(keepSeparate.length>0){
+  if(untouched.length>0){
     h+='<div style="background:#f8f9ff;padding:12px;border-radius:8px;margin-bottom:12px;">';
-    h+='<div style="font-weight:bold;color:#4caf50;margin-bottom:10px;">✅ Keep These Separately (rate ≤ '+newRate+'%)</div>';
-    keepSeparate.forEach(l=>{
-      h+='<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #e8f5e9;font-size:0.9em;">';
-      h+='<span>'+(ti_map[l.debtType]||'📋')+' '+l.name+' <span style="color:#4caf50;">('+l.yearlyRate.toFixed(1)+'% APR)</span></span>';
-      h+='<span style="font-weight:bold;">$'+fmt(l.principal)+'</span>';
+    h+='<div style="font-weight:bold;color:#999;margin-bottom:10px;">⏸️ Not Covered (loan amount ran out)</div>';
+    untouched.forEach(a=>{
+      h+='<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:0.9em;color:#999;">';
+      h+='<span>'+(ti_map[a.loan.debtType]||'📋')+' '+a.loan.name+' ('+a.loan.yearlyRate.toFixed(1)+'% APR)</span>';
+      h+='<span style="font-weight:bold;">$'+fmt(a.loan.principal)+'</span>';
       h+='</div>';
     });
     h+='</div>';
   }
 
-  // New total monthly after consolidation
+  // Recommendation
+  if(interestSaved>0){
+    h+='<div style="background:#e8f5e9;padding:15px;border-radius:8px;margin-bottom:15px;border:2px solid #4caf50;">';
+    h+='<div style="font-weight:bold;color:#2e7d32;font-size:1.05em;margin-bottom:5px;">✅ Worth It</div>';
+    h+='<div style="font-size:0.9em;color:#388e3c;">Estimated interest saved on consolidated portion: <strong>$'+fmt(interestSaved)+'</strong></div>';
+    h+='</div>';
+  } else {
+    h+='<div style="background:#ffebee;padding:15px;border-radius:8px;margin-bottom:15px;border:2px solid #f44336;">';
+    h+='<div style="font-weight:bold;color:#c62828;font-size:1.05em;margin-bottom:5px;">⚠️ Check the EIR</div>';
+    h+='<div style="font-size:0.9em;color:#d32f2f;">At ~'+eirPct.toFixed(2)+'% EIR, this may cost <strong>$'+fmt(Math.abs(interestSaved))+'</strong> more than your current rates on the consolidated portion.</div>';
+    h+='</div>';
+  }
+
+  // New monthly total
   h+='<div style="background:linear-gradient(135deg,#667eea,#764ba2);padding:15px;border-radius:8px;color:white;text-align:center;">';
   h+='<div style="font-size:0.9em;opacity:0.9;margin-bottom:5px;">Your New Total Monthly Payment</div>';
   h+='<div style="font-size:1.8em;font-weight:bold;">$'+fmt(totalNewMonthly)+'/mo</div>';
-  h+='<div style="font-size:0.8em;opacity:0.8;margin-top:5px;">New loan: $'+fmt(newMonthlyPayment)+' + Other debts: $'+fmt(remainingDebtPayment)+'</div>';
-  if(monthlySaved>0)h+='<div style="background:rgba(255,255,255,0.2);padding:8px;border-radius:6px;margin-top:10px;font-size:0.9em;">💚 Save $'+fmt(monthlySaved)+'/mo vs current payments</div>';
+  h+='<div style="font-size:0.78em;opacity:0.8;margin-top:8px;">New loan: $'+fmt(newMonthlyPayment)+(partialRemainingMonthly>0.5?' + Remaining balances: $'+fmt(partialRemainingMonthly):'')+(untouchedMonthly>0.5?' + Untouched debts: $'+fmt(untouchedMonthly):'')+'</div>';
+  if(monthlySaved>0)h+='<div style="background:rgba(255,255,255,0.2);padding:8px;border-radius:6px;margin-top:10px;font-size:0.9em;">💚 Save $'+fmt(monthlySaved)+'/mo vs current total payments</div>';
+  else h+='<div style="background:rgba(255,255,255,0.2);padding:8px;border-radius:6px;margin-top:10px;font-size:0.9em;">⚠️ $'+fmt(Math.abs(monthlySaved))+'/mo MORE than current (shorter term = higher payment)</div>';
   h+='</div>';
 
   res.innerHTML=h;
