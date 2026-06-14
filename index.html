@@ -1,1299 +1,580 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Debt Payoff Calculator</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 15px;
-            min-height: 100vh;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 0;
-            }
-        }
-
-        h1 {
-            text-align: center;
-            color: white;
-            margin-bottom: 20px;
-            font-size: 2em;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            padding: 0 10px;
-        }
-
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 1.5em;
-                margin-bottom: 15px;
-            }
-        }
-
-        .loans-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        @media (max-width: 768px) {
-            .loans-grid {
-                grid-template-columns: 1fr;
-                gap: 15px;
-            }
-        }
-
-        .loan-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            position: relative;
-            overflow: hidden;
-        }
-
-        @media (max-width: 768px) {
-            .loan-card {
-                padding: 15px;
-                border-radius: 10px;
-                overflow: hidden;
-            }
-        }
-
-        .remove-btn {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: #ff4444;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            cursor: pointer;
-            font-size: 18px;
-            line-height: 1;
-            transition: all 0.3s;
-        }
-
-        .remove-btn:hover {
-            background: #cc0000;
-            transform: scale(1.1);
-        }
-
-        .loan-card h3 {
-            color: #667eea;
-            margin-bottom: 15px;
-            font-size: 1.2em;
-        }
-
-        @media (max-width: 768px) {
-            .loan-card h3 {
-                font-size: 1.1em;
-                margin-bottom: 12px;
-            }
-        }
-
-        .input-group {
-            margin-bottom: 12px;
-        }
-
-        @media (max-width: 768px) {
-            .input-group {
-                margin-bottom: 10px;
-            }
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-            color: #333;
-            font-weight: 500;
-            font-size: 0.95em;
-        }
-
-        @media (max-width: 768px) {
-            label {
-                font-size: 0.9em;
-                margin-bottom: 4px;
-            }
-        }
-
-        input, select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: border-color 0.3s;
-            -webkit-appearance: none;
-            appearance: none;
-        }
-
-        @media (max-width: 768px) {
-            input, select {
-                padding: 10px;
-                font-size: 16px; /* Prevents zoom on iOS */
-                border-radius: 6px;
-            }
-        }
-
-        input:focus, select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        small {
-            display: block;
-            margin-top: 4px;
-            color: #666;
-            font-size: 0.8em;
-            line-height: 1.3;
-        }
-
-        @media (max-width: 768px) {
-            small {
-                font-size: 0.75em;
-            }
-        }
-
-        .results {
-            background: transparent;
-            padding: 0;
-            border-radius: 0;
-            margin-top: 20px;
-            overflow: hidden;
-        }
-
-        @media (max-width: 768px) {
-            .results {
-                overflow: hidden;
-            }
-        }
-
-        .result-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .result-row:last-child {
-            border-bottom: none;
-            font-weight: bold;
-            color: #667eea;
-            font-size: 1.1em;
-        }
-
-        .result-label {
-            color: #666;
-        }
-
-        .result-value {
-            font-weight: 600;
-            color: #333;
-        }
-
-        .add-loan-btn {
-            display: block;
-            margin: 0 auto 20px;
-            padding: 14px 35px;
-            background: white;
-            color: #667eea;
-            border: none;
-            border-radius: 50px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-            transition: all 0.3s;
-            min-height: 44px; /* iOS recommended touch target */
-        }
-
-        @media (max-width: 768px) {
-            .add-loan-btn {
-                padding: 12px 30px;
-                font-size: 15px;
-                margin-bottom: 15px;
-            }
-        }
-
-        .add-loan-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-        }
-
-        .add-loan-btn:active {
-            transform: translateY(0);
-        }
-
-        .summary-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            margin-bottom: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .summary-card {
-                padding: 15px;
-                border-radius: 10px;
-                margin-bottom: 15px;
-            }
-        }
-
-        .summary-card h2 {
-            color: #667eea;
-            margin-bottom: 15px;
-            text-align: center;
-            font-size: 1.3em;
-        }
-
-        @media (max-width: 768px) {
-            .summary-card h2 {
-                font-size: 1.1em;
-                margin-bottom: 12px;
-            }
-        }
-
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-        }
-
-        @media (max-width: 768px) {
-            .summary-grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
-            }
-        }
-
-        .summary-item {
-            text-align: center;
-            padding: 15px;
-            background: #f8f9ff;
-            border-radius: 8px;
-        }
-
-        @media (max-width: 768px) {
-            .summary-item {
-                padding: 12px 8px;
-                border-radius: 6px;
-            }
-        }
-
-        .summary-label {
-            color: #666;
-            font-size: 0.85em;
-            margin-bottom: 6px;
-        }
-
-        @media (max-width: 768px) {
-            .summary-label {
-                font-size: 0.75em;
-                margin-bottom: 4px;
-            }
-        }
-
-        .summary-value {
-            color: #667eea;
-            font-size: 1.5em;
-            font-weight: bold;
-            word-break: break-word;
-        }
-
-        @media (max-width: 768px) {
-            .summary-value {
-                font-size: 1.2em;
-            }
-        }
-
-        .amortization-table {
-            width: 100%;
-            min-width: 700px;
-            border-collapse: collapse;
-            margin-top: 15px;
-            font-size: 0.9em;
-        }
-
-        @media (max-width: 768px) {
-            .amortization-table {
-                font-size: 0.75em;
-                min-width: 600px;
-            }
-        }
-
-        .amortization-table th {
-            background: #667eea;
-            color: white;
-            padding: 12px 8px;
-            text-align: left;
-            white-space: nowrap;
-            font-size: 0.9em;
-        }
-
-        @media (max-width: 768px) {
-            .amortization-table th {
-                padding: 10px 6px;
-                font-size: 0.8em;
-            }
-        }
-
-        .amortization-table td {
-            padding: 10px 8px;
-            border-bottom: 1px solid #e0e0e0;
-            white-space: nowrap;
-        }
-
-        @media (max-width: 768px) {
-            .amortization-table td {
-                padding: 8px 6px;
-            }
-        }
-
-        .amortization-table tbody tr {
-            cursor: pointer;
-        }
-
-        .amortization-table tbody tr:hover {
-            background: #e8ebff;
-        }
-
-        .toggle-schedule {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-top: 10px;
-            font-size: 14px;
-        }
-
-        .toggle-schedule:hover {
-            background: #5568d3;
-        }
-
-        .schedule-container {
-            display: none;
-            margin-top: 15px;
-            max-height: 400px;
-            overflow: hidden;
-        }
-
-        .schedule-container.show {
-            display: block;
-            overflow: hidden;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal.show {
-            display: flex;
-        }
-
-        .modal-content {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            max-width: 600px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-            position: relative;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-        }
-
-        .modal-close {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: #ff4444;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 35px;
-            height: 35px;
-            cursor: pointer;
-            font-size: 20px;
-            line-height: 1;
-        }
-
-        .modal-close:hover {
-            background: #cc0000;
-        }
-
-        .modal h3 {
-            color: #667eea;
-            margin-bottom: 20px;
-            font-size: 1.5em;
-        }
-
-        .simple-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .simple-row:last-of-type {
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 15px;
-            margin-bottom: 15px;
-        }
-
-        .highlight-section {
-            background: #e8f5e9;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            border-left: 4px solid #4caf50;
-        }
-
-        .highlight-section.blue {
-            background: #e3f2fd;
-            border-left-color: #2196f3;
-        }
-
-        .workings-toggle-btn {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            margin: 15px 0;
-            display: block;
-            width: 100%;
-            transition: background 0.3s;
-        }
-
-        .workings-toggle-btn:hover {
-            background: #5568d3;
-        }
-
-        .detailed-workings {
-            display: none;
-            margin-top: 15px;
-            padding: 15px;
-            background: #f8f9ff;
-            border-radius: 8px;
-        }
-
-        .detailed-workings.show {
-            display: block;
-        }
-
-        .calc-step {
-            padding: 8px 0;
-            color: #666;
-            font-family: monospace;
-        }
-
-        /* Multi-Debt Overview Styles */
-        .multi-debt-overview {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            margin-top: 30px;
-        }
-
-        .multi-debt-overview h2 {
-            color: #667eea;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .priority-list {
-            list-style: none;
-            padding: 0;
-        }
-
-        .priority-item {
-            background: #f8f9ff;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            border-left: 4px solid #667eea;
-        }
-
-        .priority-item.urgent {
-            border-left-color: #ff4444;
-            background: #ffebee;
-        }
-
-        .priority-item.soon {
-            border-left-color: #ff9800;
-            background: #fff3e0;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💳 Debt Payoff Calculator</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Segoe UI',sans-serif; background:linear-gradient(135deg,#667eea,#764ba2); min-height:100vh; padding:15px; }
+.container { max-width:1400px; margin:0 auto; }
+h1 { color:white; text-align:center; margin-bottom:25px; font-size:1.8em; }
+.loan-card { background:white; border-radius:15px; padding:20px; margin-bottom:20px; position:relative; box-shadow:0 5px 20px rgba(0,0,0,0.2); overflow:hidden; }
+.loans-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:20px; }
+.input-group { margin-bottom:12px; }
+.input-group label { display:block; font-weight:600; margin-bottom:4px; color:#333; font-size:0.9em; }
+.input-group input, .input-group select { width:100%; padding:10px; border:2px solid #e0e0e0; border-radius:8px; font-size:16px; }
+.input-group small { color:#999; font-size:0.8em; }
+.remove-btn { position:absolute; top:10px; right:10px; background:#ff4444; color:white; border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; font-size:16px; }
+.add-btn { background:linear-gradient(135deg,#667eea,#764ba2); color:white; border:none; padding:12px 25px; border-radius:10px; cursor:pointer; font-size:16px; font-weight:bold; margin-bottom:20px; }
+.calc-btn { width:100%; padding:14px; background:linear-gradient(135deg,#667eea,#764ba2); color:white; border:none; border-radius:10px; font-size:16px; font-weight:bold; cursor:pointer; margin-top:8px; }
+.results { margin-top:15px; }
+.result-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee; }
+.result-label { color:#666; }
+.result-value { font-weight:bold; color:#667eea; }
+.schedule-btn { background:#667eea; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer; margin-top:10px; font-size:14px; }
+.schedule-wrap { display:none; margin-top:10px; max-height:400px; overflow-y:auto; }
+.schedule-wrap.open { display:block; }
+.schedule-wrap table { width:100%; border-collapse:collapse; min-width:600px; font-size:0.85em; }
+.schedule-wrap th { background:#667eea; color:white; padding:8px; text-align:right; }
+.schedule-wrap th:first-child { text-align:left; }
+.schedule-wrap td { padding:7px 8px; text-align:right; border-bottom:1px solid #f0f0f0; }
+.schedule-wrap td:first-child { text-align:left; }
+.schedule-wrap tbody tr:hover { background:#f0f4ff; cursor:pointer; }
+.table-scroll { overflow-x:auto; }
+.summary-card { background:white; border-radius:15px; padding:25px; margin-top:20px; box-shadow:0 5px 20px rgba(0,0,0,0.2); }
+.summary-card h2 { color:#667eea; margin-bottom:15px; }
+.summary-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:15px; }
+.summary-item { text-align:center; padding:15px; background:#f8f9ff; border-radius:10px; }
+.summary-label { font-size:0.85em; color:#666; }
+.summary-value { font-size:1.4em; font-weight:bold; color:#667eea; margin-top:5px; }
+.warning-box { background:#fff3e0; border-left:4px solid #ff9800; padding:12px; border-radius:8px; margin-bottom:12px; font-size:0.9em; color:#e65100; }
+.modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; overflow-y:auto; }
+.modal.open { display:flex; align-items:flex-start; justify-content:center; padding:20px; }
+.modal-content { background:white; border-radius:15px; padding:25px; width:100%; max-width:500px; margin-top:20px; position:relative; }
+.modal-close { position:absolute; top:10px; right:15px; background:none; border:none; font-size:24px; cursor:pointer; color:#999; }
+.modal-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee; }
+.highlight-box { background:#e8f5e9; border-radius:8px; padding:12px; margin-top:10px; }
+.highlight-box.blue { background:#e3f2fd; }
+.overview-card { background:white; border-radius:15px; padding:25px; margin-top:20px; box-shadow:0 5px 20px rgba(0,0,0,0.2); display:none; }
+.overview-card h2 { color:#667eea; margin-bottom:15px; }
+.strategy-box { background:linear-gradient(135deg,#667eea,#764ba2); border-radius:12px; padding:20px; margin-top:20px; }
+.strategy-inner { background:white; border-radius:8px; padding:20px; }
+.strategy-results { margin-top:15px; overflow:hidden; }
+.month-block { background:#f8fffe; border-left:3px solid #11998e; border-radius:6px; padding:12px; margin-bottom:12px; }
+.month-row { display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #e0f2f0; font-size:0.9em; }
+.month-total { display:flex; justify-content:space-between; padding-top:8px; margin-top:5px; border-top:2px solid #11998e; font-weight:bold; }
+.payoff-item { padding:10px; border-radius:6px; margin-bottom:5px; border-left:4px solid #ccc; display:flex; justify-content:space-between; align-items:center; }
+.budget-planner { background:linear-gradient(135deg,#11998e,#38ef7d); border-radius:15px; padding:25px; margin-bottom:25px; }
+.budget-inner { background:white; border-radius:12px; padding:20px; }
+.budget-grid { display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px; }
+.available-box { background:linear-gradient(135deg,#667eea,#764ba2); border-radius:10px; padding:20px; color:white; margin-top:15px; text-align:center; }
+.autofill-btn { width:100%; padding:12px; background:white; color:#667eea; border:none; border-radius:8px; font-weight:bold; cursor:pointer; margin-top:12px; font-size:0.95em; }
+@media(max-width:600px){
+  .budget-grid { grid-template-columns:1fr; }
+  .loans-grid { grid-template-columns:1fr; }
+  .summary-grid { grid-template-columns:1fr 1fr; }
+}
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>💳 Debt Payoff Calculator</h1>
-        
-        <button class="add-loan-btn" onclick="addLoan()">+ Add Debt</button>
-        
-        <div class="loans-grid" id="loansGrid"></div>
-        
-        <div class="summary-card">
-            <h2>Overall Summary</h2>
-            <div class="summary-grid" id="summaryGrid">
-                <div class="summary-item">
-                    <div class="summary-label">Total Borrowed</div>
-                    <div class="summary-value" id="totalBorrowed">$0</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-label">Total Interest</div>
-                    <div class="summary-value" id="totalInterest">$0</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-label">Total to Pay</div>
-                    <div class="summary-value" id="totalPayment">$0</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-label">Combined Monthly</div>
-                    <div class="summary-value" id="combinedMonthly">$0</div>
-                </div>
-            </div>
+<div class="container">
+  <h1>💳 Debt Payoff Calculator</h1>
+  <div class="budget-planner">
+    <h2 style="color:white;margin-bottom:10px;">💰 Monthly Budget Calculator</h2>
+    <p style="color:rgba(255,255,255,0.9);font-size:0.9em;margin-bottom:15px;">Figure out how much you can put toward debt each month</p>
+    <div class="budget-inner">
+      <div class="budget-grid">
+        <div class="input-group"><label>💵 Monthly Salary</label><input type="number" id="bSalary" placeholder="e.g. 4000" oninput="calcBudget()"></div>
+        <div class="input-group"><label>✨ Extra Income</label><input type="number" id="bExtra" placeholder="e.g. 500" oninput="calcBudget()"></div>
+      </div>
+      <div class="input-group"><label>🏠 Monthly Expenses</label><input type="number" id="bExpenses" placeholder="e.g. 2000" oninput="calcBudget()"></div>
+      <div class="input-group"><label>🎯 Monthly Savings Goal</label><input type="number" id="bSavings" placeholder="e.g. 200" oninput="calcBudget()"></div>
+      <div id="budgetResult"></div>
+    </div>
+  </div>
+  <button class="add-btn" onclick="addLoan()">+ Add Debt</button>
+  <div class="loans-grid" id="loansGrid"></div>
+  <div class="summary-card" id="summaryCard" style="display:none">
+    <h2>📊 Overall Summary</h2>
+    <div class="summary-grid">
+      <div class="summary-item"><div class="summary-label">Total Borrowed</div><div class="summary-value" id="sTotalBorrowed">$0</div></div>
+      <div class="summary-item"><div class="summary-label">Total Interest</div><div class="summary-value" id="sTotalInterest">$0</div></div>
+      <div class="summary-item"><div class="summary-label">Total to Pay</div><div class="summary-value" id="sTotalPayment">$0</div></div>
+      <div class="summary-item"><div class="summary-label">Combined Monthly</div><div class="summary-value" id="sCombinedMonthly">$0</div></div>
+    </div>
+  </div>
+  <div class="overview-card" id="overviewCard">
+    <h2>🎯 Smart Debt Optimizer</h2>
+    <div class="strategy-box">
+      <div class="strategy-inner">
+        <div class="input-group">
+          <label style="color:#667eea;font-weight:600;">💵 How much can you pay TOTAL per month?</label>
+          <input type="number" id="totalBudget" placeholder="e.g. 3000" oninput="runStrategy()" style="border-color:#667eea;">
         </div>
-
-        <!-- Multi-Debt Overview -->
-        <div class="multi-debt-overview" id="multiDebtOverview" style="display: none;">
-            <h2>💰 All Debts Summary</h2>
-            <div class="summary-grid" style="margin-bottom: 20px;">
-                <div class="summary-item">
-                    <div class="summary-label">Total Monthly Payment</div>
-                    <div class="summary-value" id="totalMonthlyAll">$0</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-label">Average Daily Savings</div>
-                    <div class="summary-value" id="avgDailySavings">$0/day</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-label">Total Debt Remaining</div>
-                    <div class="summary-value" id="totalDebtRemaining">$0</div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-label">Next Payment Due</div>
-                    <div class="summary-value" id="nextPaymentDue">-</div>
-                </div>
-            </div>
-            
-            <h3 style="color: #667eea; margin-bottom: 15px;">📋 Payment Priority</h3>
-            <ul class="priority-list" id="priorityList"></ul>
+        <div class="input-group">
+          <label style="color:#667eea;font-weight:600;">🧠 Optimization Method</label>
+          <select id="stratMethod" onchange="runStrategy()" style="border-color:#667eea;">
+            <option value="smart">🔥 Smart (Priority + Highest Interest)</option>
+            <option value="avalanche">💰 Avalanche (Highest Interest First)</option>
+            <option value="snowball">⛄ Snowball (Smallest Balance First)</option>
+          </select>
         </div>
+        <div class="strategy-results" id="stratResults"></div>
+      </div>
     </div>
 
-    <div class="modal" id="workingsModal">
-        <div class="modal-content">
-            <button class="modal-close" onclick="closeModal()">×</button>
-            <div id="modalBody"></div>
+    <!-- CONSOLIDATION CALCULATOR -->
+    <div style="background:linear-gradient(135deg,#f093fb,#f5576c);border-radius:12px;padding:20px;margin-top:20px;">
+      <h3 style="color:white;margin-bottom:5px;">💡 Debt Consolidation Advisor</h3>
+      <p style="color:rgba(255,255,255,0.85);font-size:0.85em;margin-bottom:15px;">What if you got a personal loan at a lower rate to wipe out your high-interest debts?</p>
+      <div style="background:white;border-radius:8px;padding:20px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div class="input-group">
+            <label style="color:#f5576c;font-weight:600;">📉 New Loan Interest Rate (%)</label>
+            <input type="number" step="0.1" id="consolidateRate" placeholder="e.g. 12" oninput="calcConsolidation()" style="border-color:#f5576c;">
+            <small>The rate you'd get on the new loan</small>
+          </div>
+          <div class="input-group">
+            <label style="color:#f5576c;font-weight:600;">📅 Repay New Loan Over (Months)</label>
+            <input type="number" id="consolidateMonths" placeholder="e.g. 24" oninput="calcConsolidation()" style="border-color:#f5576c;">
+            <small>How long to repay the new loan</small>
+          </div>
         </div>
+        <div id="consolidationResults"></div>
+      </div>
     </div>
+  </div>
+</div>
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+<script>
+let loanCounter=0,loans=[],currentLoan=null;
+function fmt(n){if(isNaN(n)||n===null||n===undefined)return'0';return Math.round(n).toLocaleString();}
+function calcMP(p,r,m){if(r===0)return p/m;const x=r/100;return p*(x*Math.pow(1+x,m))/(Math.pow(1+x,m)-1);}
+function addLoan(){loanCounter++;loans.push({id:'loan'+loanCounter,name:'Creditor '+loanCounter,debtType:'credit-card',priority:'medium',paymentMode:'fixed',todayDate:new Date().toISOString().split('T')[0],expectedRepaymentDate:'',daysToAdd:0,principal:0,yearlyRate:0,rate:0,months:0,monthlyPayment:0,totalInterest:0,totalPayment:0,schedule:null});renderLoans();}
+function removeLoan(id){loans=loans.filter(l=>l.id!==id);renderLoans();updateSummary();updateOverview();}
+function field(l,i){return'<div class="input-group"><label>'+l+'</label>'+i+'</div>';}
+function clearDef(el,p){if(el.value.startsWith(p))el.value='';}
+function setField(id,k,v){const l=loans.find(x=>x.id===id);if(l)l[k]=v;}
+function setNum(id,k,v){const l=loans.find(x=>x.id===id);if(l)l[k]=parseFloat(v)||0;}
+function setYR(id,v){const l=loans.find(x=>x.id===id);if(!l)return;l.yearlyRate=parseFloat(v)||0;l.rate=l.yearlyRate/12;const e=document.getElementById('mr-'+id);if(e)e.value=l.rate.toFixed(2);}
+function setMode(id,v){const l=loans.find(x=>x.id===id);if(!l)return;l.paymentMode=v;const m=document.getElementById('mf-'+id);if(m)m.style.display=v==='minimum'?'none':'block';}
+function setRD(id,v){const l=loans.find(x=>x.id===id);if(!l||!v)return;l.expectedRepaymentDate=v;const t=new Date(l.todayDate||new Date().toISOString().split('T')[0]);const d=Math.ceil((new Date(v)-t)/86400000);l.daysToAdd=d;const e=document.getElementById('du-'+id);if(e)e.value=d;}
+function renderLoans(){
+  const g=document.getElementById('loansGrid');g.innerHTML='';
+  loans.forEach((loan,idx)=>{
+    const c=document.createElement('div');c.className='loan-card';c.id='card-'+loan.id;
+    const to=[['credit-card','💳 Credit Card'],['personal-loan','🏦 Personal Loan'],['family-loan','👨‍👩‍👧 Family Loan'],['pawn','💎 Pawn/Collateral'],['other','📋 Other']].map(([v,l])=>'<option value="'+v+'"'+(loan.debtType===v?' selected':'')+'>'+l+'</option>').join('');
+    const po=[['high','🔴 High (Pay First)'],['medium','🟡 Medium'],['low','🟢 Low (Pay Last)']].map(([v,l])=>'<option value="'+v+'"'+(loan.priority===v?' selected':'')+'>'+l+'</option>').join('');
+    const mo=[['fixed','📅 Fixed Payment Plan'],['minimum','💳 Minimum Payment (3%)']].map(([v,l])=>'<option value="'+v+'"'+(loan.paymentMode===v?' selected':'')+'>'+l+'</option>').join('');
+    c.innerHTML=(loans.length>1?'<button class="remove-btn" onclick="removeLoan(\''+loan.id+'\')">×</button>':'')+
+      '<h3 style="color:#667eea;margin-bottom:15px;">Debt '+(idx+1)+'</h3>'+
+      field('Creditor Name','<input type="text" value="'+loan.name+'" onfocus="clearDef(this,\'Creditor\')" onchange="setField(\''+loan.id+'\',\'name\',this.value)">')+
+      field('Debt Type','<select onchange="setField(\''+loan.id+'\',\'debtType\',this.value)">'+to+'</select>')+
+      field('Priority','<select onchange="setField(\''+loan.id+'\',\'priority\',this.value)">'+po+'</select><small>High = pay first</small>')+
+      field('Expected Repayment Date','<input type="date" value="'+loan.expectedRepaymentDate+'" onchange="setRD(\''+loan.id+'\',this.value)"><small style="color:#28a745">When is payment due?</small>')+
+      field('Days Until Payment','<input type="number" id="du-'+loan.id+'" value="'+(loan.daysToAdd||'')+'" readonly style="background:#f0f0f0"><small>Auto-calculated</small>')+
+      field('Debt Amount ($)','<input type="number" value="'+(loan.principal||'')+'" placeholder="e.g. 12890" onchange="setNum(\''+loan.id+'\',\'principal\',this.value)">')+
+      field('Yearly Interest Rate (%)','<input type="number" step="0.01" value="'+(loan.yearlyRate||'')+'" placeholder="e.g. 27.8" onchange="setYR(\''+loan.id+'\',this.value)">')+
+      field('Monthly Interest Rate (%)','<input type="number" id="mr-'+loan.id+'" value="'+(loan.rate?loan.rate.toFixed(2):'')+'" readonly style="background:#f0f0f0" placeholder="Auto-calculated">')+
+      field('Payment Mode','<select onchange="setMode(\''+loan.id+'\',this.value)">'+mo+'</select><small>Fixed = set timeline | Minimum = 3% credit card style</small>')+
+      '<div id="mf-'+loan.id+'" style="display:'+(loan.paymentMode==='minimum'?'none':'block')+'">'+
+        field('Repayment Period (Months)','<input type="number" value="'+(loan.months||'')+'" placeholder="e.g. 12" onchange="setNum(\''+loan.id+'\',\'months\',this.value)">')+
+      '</div>'+
+      '<button class="calc-btn" onclick="calcLoan(\''+loan.id+'\')">📊 Calculate</button>'+
+      '<div id="res-'+loan.id+'"></div>';
+    g.appendChild(c);
+    if(loan.schedule)renderRes(loan.id);
+  });
+}
+function calcLoan(id){
+  const l=loans.find(x=>x.id===id);
+  if(!l||l.principal===0)return;
+  if(l.paymentMode==='minimum'){
+    let bal=l.principal,mo=0,ti=0;const r=l.rate/100;const sch=[];
+    while(bal>0.5&&mo<1200){mo++;const int=bal*r;const mp=Math.max(bal*0.03,25);const pay=Math.min(mp,bal+int);const pr=pay-int;bal=Math.max(0,bal-pr);ti+=int;
+      let pd=null,df=null;
+      if(l.expectedRepaymentDate){const d=new Date(l.expectedRepaymentDate);d.setMonth(d.getMonth()+(mo-1));pd=d;const t=new Date(l.todayDate||new Date().toISOString().split('T')[0]);df=Math.ceil((d-t)/86400000);}
+      sch.push({month:mo,payment:pay,principal:pr,interest:int,balance:bal,earlyPayoff:bal+int,paymentDate:pd,daysFromToday:df,dailySavings:pay/30});
+    }
+    l.monthlyPayment=l.principal*0.03;l.totalInterest=ti;l.totalPayment=l.principal+ti;l.months=mo;l.schedule=sch;
+  } else {
+    if(!l.months)return;
+    const mp=calcMP(l.principal,l.rate,l.months);
+    l.monthlyPayment=mp;l.totalPayment=mp*l.months;l.totalInterest=l.totalPayment-l.principal;
+    let bal=l.principal;const r=l.rate/100;const sch=[];
+    let fd=null;if(l.expectedRepaymentDate){const p=l.expectedRepaymentDate.split('-');fd=new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));}
+    const td=l.todayDate?new Date(l.todayDate):new Date();
+    for(let m=1;m<=l.months;m++){const int=bal*r;const pr=mp-int;bal=Math.max(0,bal-pr);let pd=null,df=null;
+      if(fd){pd=new Date(fd);pd.setMonth(pd.getMonth()+(m-1));df=Math.ceil((pd-td)/86400000);}
+      sch.push({month:m,payment:mp,principal:pr,interest:int,balance:bal,earlyPayoff:bal+int,paymentDate:pd,daysFromToday:df,dailySavings:mp/30});
+    }
+    l.schedule=sch;
+  }
+  renderRes(id);updateSummary();updateOverview();
+}
+function renderRes(id){
+  const l=loans.find(x=>x.id===id);const d=document.getElementById('res-'+id);
+  if(!d||!l.schedule)return;
+  let h='<div class="results">';
+  if(l.paymentMode==='minimum')h+='<div class="warning-box">⚠️ Minimum payments = <strong>'+l.months+' months</strong> & <strong>$'+fmt(l.totalInterest)+'</strong> interest!</div>';
+  h+='<div style="background:#f8f9ff;padding:12px;border-radius:8px;margin-bottom:10px;">';
+  if(l.paymentMode==='minimum'){h+=rw('First Month (3%):','$'+fmt(l.monthlyPayment));h+=rw('Months to Pay Off:',l.months+' months');}
+  else h+=rw('Monthly Payment:','$'+fmt(l.monthlyPayment));
+  h+=rw('Total Interest:','$'+fmt(l.totalInterest));h+=rw('Total Payment:','$'+fmt(l.totalPayment));h+='</div>';
+  h+='<button class="schedule-btn" onclick="toggleSch(\''+id+'\')">View Payment Schedule</button>';
+  h+='<div class="schedule-wrap" id="sw-'+id+'">';
+  h+='<p style="color:#667eea;font-size:0.85em;margin:8px 0;font-style:italic;">💡 Click any row for details</p>';
+  h+='<div class="table-scroll"><table><thead><tr><th>Mo</th><th>Date</th><th>Days</th><th>Payment</th><th>Principal</th><th>Interest</th><th>Balance</th><th>Early Payoff</th></tr></thead><tbody>';
+  l.schedule.forEach((row,i)=>{
+    const ds=row.paymentDate?row.paymentDate.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'-';
+    const dc=row.daysFromToday<7?'#d32f2f':row.daysFromToday<14?'#f57c00':'#333';
+    h+='<tr onclick="openMod(\''+id+'\','+i+')" style="background:'+(i%2?'#f8f9ff':'white')+'"><td>'+row.month+'</td><td>'+ds+'</td><td style="color:'+dc+';font-weight:bold;">'+(row.daysFromToday!==null?row.daysFromToday:'-')+'</td><td>$'+fmt(row.payment)+'</td><td style="color:#4caf50">$'+fmt(row.principal)+'</td><td style="color:#f44336">$'+fmt(row.interest)+'</td><td>$'+fmt(row.balance)+'</td><td style="color:#28a745;font-weight:bold">$'+fmt(row.earlyPayoff)+'</td></tr>';
+  });
+  h+='</tbody></table></div></div></div>';d.innerHTML=h;
+}
+function rw(l,v){return'<div class="result-row"><span class="result-label">'+l+'</span><span class="result-value">'+v+'</span></div>';}
+function toggleSch(id){const e=document.getElementById('sw-'+id);if(e)e.classList.toggle('open');}
+function openMod(lid,idx){
+  const l=loans.find(x=>x.id===lid);if(!l||!l.schedule)return;currentLoan=l;
+  const m=l.schedule[idx];const dc=m.daysFromToday<7?'#d32f2f':m.daysFromToday<14?'#f57c00':'#1976d2';const db=m.daysFromToday<7?'#ffebee':m.daysFromToday<14?'#fff3e0':'#e3f2fd';
+  const ds=m.paymentDate?m.paymentDate.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+  let h='<h3 style="color:#667eea;margin-bottom:15px;">Month '+m.month+' Details</h3>';
+  if(ds)h+='<div style="background:'+db+';padding:10px;border-radius:8px;margin-bottom:12px;display:flex;justify-content:space-between;"><span>📅 Due: <strong>'+ds+'</strong></span><span style="color:'+dc+';font-weight:bold;">'+m.daysFromToday+' days left</span></div>';
+  h+='<div style="background:#f8f9ff;padding:12px;border-radius:8px;margin-bottom:12px;">';
+  h+=mr('💳 Monthly Payment','$'+fmt(m.payment),'#667eea','1.3em');
+  h+=mr('Interest','$'+fmt(m.interest),'#f44336');
+  h+=mr('Principal','$'+fmt(m.principal),'#4caf50');
+  h+=mr('Remaining Balance','$'+fmt(m.balance));
+  h+='</div>';
+  h+='<div style="background:#fff3e0;border-left:4px solid #ff9800;padding:12px;border-radius:8px;margin-bottom:12px;">';
+  h+='<div style="font-weight:600;color:#f57c00;margin-bottom:8px;">💰 What if I pay extra?</div>';
+  h+='<div style="display:flex;gap:8px;align-items:center;"><span>Extra: $</span><input type="number" id="ei" style="flex:1;padding:8px;border:2px solid #ff9800;border-radius:6px;font-size:16px;" placeholder="0" oninput="calcEx('+idx+')"></div>';
+  h+='<div id="er" style="margin-top:8px;"></div></div>';
+  const is=l.schedule.slice(idx).reduce((s,r)=>s+r.interest,0)-m.interest;
+  h+='<div class="highlight-box"><div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span><strong>⚡ Pay Off Early</strong></span><span style="color:#28a745;font-weight:bold;font-size:1.3em;">$'+fmt(m.earlyPayoff)+'</span></div><div style="font-size:0.85em;color:#2e7d32;">💡 Save $'+fmt(is)+' in future interest</div></div>';
+  h+='<div class="highlight-box blue" style="margin-top:10px;"><div style="display:flex;justify-content:space-between;"><span><strong>📅 Daily Savings Needed</strong></span><span style="color:#1976d2;font-weight:bold;font-size:1.3em;">$'+fmt(m.dailySavings)+'/day</span></div></div>';
+  document.getElementById('modalBody').innerHTML=h;document.getElementById('modal').classList.add('open');
+}
+function mr(l,v,c,s){return'<div class="modal-row"><span>'+l+'</span><span style="font-weight:bold;color:'+(c||'#333')+';font-size:'+(s||'1em')+'">'+v+'</span></div>';}
+function calcEx(idx){
+  const ex=parseFloat(document.getElementById('ei').value)||0;const r=document.getElementById('er');
+  if(!currentLoan||ex<=0){r.innerHTML='';return;}
+  const m=currentLoan.schedule[idx];const tp=m.payment+ex;
+  if(tp>=m.earlyPayoff){r.innerHTML='<div style="background:#e8f5e9;padding:10px;border-radius:6px;border:2px solid #4caf50;color:#2e7d32;font-weight:bold;">🎉 LOAN PAID OFF! Pay $'+fmt(tp)+' now!</div>';return;}
+  let bal=Math.max(0,m.balance+m.principal-(tp-m.interest));const rate=currentLoan.rate/100;let mos=0,il=0,b=bal;
+  while(b>0.5&&mos<1000){mos++;const i=b*rate;il+=i;b=Math.max(0,b-(currentLoan.monthlyPayment-i));}
+  const ol=currentLoan.schedule.length-idx-1;const oi=currentLoan.schedule.slice(idx+1).reduce((s,x)=>s+x.interest,0);
+  r.innerHTML='<div style="background:white;padding:10px;border-radius:6px;border:2px solid #ff9800;">'+
+    '<div style="font-weight:bold;color:#f57c00;margin-bottom:8px;">📊 Extra $'+fmt(ex)+' Impact</div>'+
+    mr('New Balance','$'+fmt(bal))+mr('Months Left',mos+' months')+mr('Time Saved',(ol-mos)+' months','#2e7d32')+mr('Interest Saved','$'+fmt(oi-il),'#2e7d32')+'</div>';
+}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+function updateSummary(){
+  const a=loans.filter(l=>l.schedule);document.getElementById('summaryCard').style.display=a.length?'block':'none';
+  document.getElementById('sTotalBorrowed').textContent='$'+fmt(a.reduce((s,l)=>s+l.principal,0));
+  document.getElementById('sTotalInterest').textContent='$'+fmt(a.reduce((s,l)=>s+l.totalInterest,0));
+  document.getElementById('sTotalPayment').textContent='$'+fmt(a.reduce((s,l)=>s+l.totalPayment,0));
+  document.getElementById('sCombinedMonthly').textContent='$'+fmt(a.reduce((s,l)=>s+l.monthlyPayment,0));
+}
+function updateOverview(){
+  const a=loans.filter(l=>l.schedule);const c=document.getElementById('overviewCard');
+  c.style.display=a.length>=2?'block':'none';if(a.length>=2)runStrategy();
+}
+function runStrategy(){
+  const budget=parseFloat(document.getElementById('totalBudget').value)||0;
+  const method=document.getElementById('stratMethod').value;
+  const res=document.getElementById('stratResults');
+  const active=loans.filter(l=>l.schedule);
+  if(!active.length||!budget){res.innerHTML='';return;}
 
-    <script>
-        let loanCounter = 0;
-        let loans = [];
-        let currentSchedule = null;
-        let currentLoanData = null;
+  const pw={high:3,medium:2,low:1};
 
-        function formatCurrency(amount, decimals = 0) {
-            return amount.toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-        }
+  // Sort order determines which debt gets ATTACKED first (gets all the extra)
+  let sorted;
+  if(method==='smart'){
+    // Smart: high priority first, then smallest balance within same priority
+    sorted=[...active].sort((a,b)=>{
+      const pd=(pw[b.priority]||2)-(pw[a.priority]||2);
+      return pd!==0?pd:a.principal-b.principal; // smallest balance within same priority
+    });
+  } else if(method==='avalanche'){
+    sorted=[...active].sort((a,b)=>b.rate-a.rate);
+  } else {
+    sorted=[...active].sort((a,b)=>a.principal-b.principal);
+  }
 
-        function calculateMonthlyPayment(principal, monthlyRate, months) {
-            if (monthlyRate === 0) {
-                return principal / months;
-            }
-            const rate = monthlyRate / 100;
-            const payment = principal * (rate * Math.pow(1 + rate, months)) / (Math.pow(1 + rate, months) - 1);
-            return payment;
-        }
+  // Deep copy states preserving sort order
+  const states=sorted.map(l=>({
+    id:l.id,name:l.name,
+    balance:l.principal,
+    rate:l.rate,
+    minPay:l.monthlyPayment,
+    debtType:l.debtType,
+    priority:l.priority
+  }));
 
-        function generateAmortizationSchedule(principal, monthlyRate, months, monthlyPayment, loanData) {
-            const schedule = [];
-            let balance = principal;
-            const rate = monthlyRate / 100;
+  const months=[];let ti=0;const po=[];let mo=0;
 
-            // Parse today's date from YYYY-MM-DD
-            let todayDate = null;
-            if (loanData && loanData.todayDate) {
-                const parts = loanData.todayDate.split('-');
-                todayDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-            } else {
-                todayDate = new Date();
-            }
-            
-            // Parse expected repayment date from YYYY-MM-DD
-            let firstPaymentDate = null;
-            if (loanData && loanData.expectedRepaymentDate) {
-                const parts = loanData.expectedRepaymentDate.split('-');
-                firstPaymentDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-            }
+  while(states.some(s=>s.balance>0.5)&&mo<600){
+    mo++;const md={month:mo,debts:[]};
 
-            for (let month = 1; month <= months; month++) {
-                const interest = balance * rate;
-                const principalPayment = monthlyPayment - interest;
-                balance -= principalPayment;
+    // Calculate interest on all active debts first
+    const activeDebts=states.filter(s=>s.balance>0.5);
+    activeDebts.forEach(s=>{s.interestThisMonth=s.balance*(s.rate/100);ti+=s.interestThisMonth;});
 
-                let paymentDate = null;
-                let daysUntilPayment = 30;
-                let daysFromToday = null;
-                
-                if (firstPaymentDate) {
-                    if (month === 1) {
-                        paymentDate = new Date(firstPaymentDate);
-                    } else {
-                        paymentDate = new Date(firstPaymentDate);
-                        paymentDate.setMonth(paymentDate.getMonth() + (month - 1));
-                    }
-                    
-                    const timeDiffFromToday = paymentDate.getTime() - todayDate.getTime();
-                    daysFromToday = Math.ceil(timeDiffFromToday / (1000 * 60 * 60 * 24));
-                    
-                    if (month === 1) {
-                        daysUntilPayment = daysFromToday > 0 ? daysFromToday : 1;
-                    } else {
-                        const prevPaymentDate = new Date(firstPaymentDate);
-                        prevPaymentDate.setMonth(prevPaymentDate.getMonth() + (month - 2));
-                        const timeDiff = paymentDate.getTime() - prevPaymentDate.getTime();
-                        daysUntilPayment = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-                    }
-                }
+    // Total minimum needed for all debts
+    const totalMin=activeDebts.reduce((sum,s)=>sum+Math.min(s.minPay,s.balance+s.interestThisMonth),0);
 
-                const earlyPayoffAmount = balance + interest;
+    // Find the TARGET debt - first in sorted order that's still alive
+    const target=activeDebts[0];
 
-                schedule.push({
-                    month: month,
-                    payment: monthlyPayment,
-                    principal: principalPayment,
-                    interest: interest,
-                    balance: Math.max(0, balance),
-                    earlyPayoff: earlyPayoffAmount,
-                    paymentDate: paymentDate,
-                    daysUntilPayment: daysUntilPayment,
-                    daysFromToday: daysFromToday,
-                    dailySavings: monthlyPayment / daysUntilPayment
-                });
-            }
+    if(budget<=totalMin){
+      // Budget can't cover all minimums - pay proportionally
+      const ratio=budget/totalMin;
+      activeDebts.forEach(s=>{
+        const minP=Math.min(s.minPay,s.balance+s.interestThisMonth);
+        const pay=minP*ratio;
+        const pr=Math.max(0,pay-s.interestThisMonth);
+        s.balance=Math.max(0,s.balance-pr);
+        md.debts.push({name:s.name,pay,interest:s.interestThisMonth,principal:pr,balance:s.balance,isTarget:s===target});
+        if(s.balance<0.5&&!po.find(p=>p.name===s.name))po.push({month:mo,name:s.name,debtType:s.debtType,priority:s.priority,rate:s.rate});
+      });
+    } else {
+      // AGGRESSIVE MODE:
+      // 1. Pay minimum on ALL non-target debts
+      // 2. Throw EVERYTHING remaining at the target debt
+      let budgetLeft=budget;
 
-            return schedule;
-        }
+      // First pass: pay minimums on all non-target debts
+      activeDebts.filter(s=>s!==target).forEach(s=>{
+        const minP=Math.min(s.minPay,s.balance+s.interestThisMonth);
+        budgetLeft-=minP;
+        const pr=Math.max(0,minP-s.interestThisMonth);
+        s.balance=Math.max(0,s.balance-pr);
+        md.debts.push({name:s.name,pay:minP,interest:s.interestThisMonth,principal:pr,balance:s.balance,isTarget:false});
+        if(s.balance<0.5&&!po.find(p=>p.name===s.name))po.push({month:mo,name:s.name,debtType:s.debtType,priority:s.priority,rate:s.rate});
+      });
 
-        function addLoan() {
-            loanCounter++;
-            const loanId = `loan-${loanCounter}`;
-            
-            loans.push({
-                id: loanId,
-                name: `Creditor ${loanCounter}`,
-                todayDate: new Date().toISOString().split('T')[0],
-                statementDate: '',
-                daysToAdd: 25,
-                expectedRepaymentDate: '',
-                principal: 0,
-                yearlyRate: 0,
-                rate: 0,
-                months: 0
-            });
+      // Second pass: throw ALL remaining budget at target debt
+      const maxTarget=target.balance+target.interestThisMonth;
+      const targetPay=Math.min(budgetLeft,maxTarget);
+      const targetPr=Math.max(0,targetPay-target.interestThisMonth);
+      target.balance=Math.max(0,target.balance-targetPr);
+      md.debts.push({name:target.name,pay:targetPay,interest:target.interestThisMonth,principal:targetPr,balance:target.balance,isTarget:true});
+      if(target.balance<0.5&&!po.find(p=>p.name===target.name))po.push({month:mo,name:target.name,debtType:target.debtType,priority:target.priority,rate:target.rate});
+    }
 
-            renderLoans();
-        }
+    months.push(md);
+  }
+  const oi=active.reduce((s,l)=>s+l.totalInterest,0);const sv=oi-ti;
+  const ti_map={'credit-card':'💳','personal-loan':'🏦','family-loan':'👨‍👩‍👧','pawn':'💎','other':'📋'};
+  const pc={high:'#f44336',medium:'#ff9800',low:'#4caf50'};
+  const ml={smart:'🔥 Smart (Aggressive Kill)',avalanche:'💰 Avalanche (Highest Interest First)',snowball:'⛄ Snowball (Smallest Balance First)'};
+  const md_desc={smart:'Kills priority debts fast, rolls freed payment to next target',avalanche:'Kills highest interest first, rolls freed payment to next',snowball:'Kills smallest balance first, rolls freed payment to next'};
 
-        function removeLoan(loanId) {
-            loans = loans.filter(loan => loan.id !== loanId);
-            renderLoans();
-            updateSummary();
-            updateMultiDebtOverview();
-        }
+  let h='<div style="background:#e3f2fd;padding:15px;border-radius:8px;margin-bottom:15px;">';
+  h+='<div style="font-weight:bold;color:#1976d2;margin-bottom:4px;">'+ml[method]+'</div>';
+  h+='<div style="font-size:0.85em;color:#1565c0;margin-bottom:12px;">'+md_desc[method]+'</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
+  h+='<div><div style="font-size:0.85em;color:#666;">Payoff Time</div><div style="font-size:1.8em;font-weight:bold;color:#1976d2;">'+mo+' mo</div></div>';
+  h+='<div><div style="font-size:0.85em;color:#666;">Total Interest</div><div style="font-size:1.8em;font-weight:bold;color:#1976d2;">$'+fmt(ti)+'</div></div>';
+  h+='</div>';
+  h+='<div style="background:'+(sv>0?'#e8f5e9':'#ffebee')+';padding:10px;border-radius:6px;margin-top:10px;">';
+  h+='<span style="color:'+(sv>0?'#2e7d32':'#c62828')+';font-size:0.9em;">'+(sv>0?'💚 Saved':'⚠️ Extra')+' vs Original Plan: <strong>$'+fmt(Math.abs(sv))+'</strong></span></div></div>';
 
-        function updateLoan(loanId, field, value) {
-            const loan = loans.find(l => l.id === loanId);
-            if (loan) {
-                if (field === 'name') {
-                    loan[field] = value;
-                } else if (field === 'todayDate' || field === 'statementDate') {
-                    loan[field] = value;
-                } else {
-                    loan[field] = parseFloat(value) || 0;
-                }
-                
-                if ((field === 'statementDate' || field === 'daysToAdd') && loan.statementDate) {
-                    const parts = loan.statementDate.split('-');
-                    const year = parseInt(parts[0]);
-                    const month = parseInt(parts[1]) - 1;
-                    const day = parseInt(parts[2]);
-                    
-                    const statementDate = new Date(year, month, day);
-                    const daysToAdd = parseInt(loan.daysToAdd) || 25;
-                    
-                    const repaymentDate = new Date(statementDate);
-                    repaymentDate.setDate(repaymentDate.getDate() + daysToAdd);
-                    
-                    const repayYear = repaymentDate.getFullYear();
-                    const repayMonth = String(repaymentDate.getMonth() + 1).padStart(2, '0');
-                    const repayDay = String(repaymentDate.getDate()).padStart(2, '0');
-                    
-                    loan.expectedRepaymentDate = `${repayYear}-${repayMonth}-${repayDay}`;
-                    
-                    const repaymentInput = document.getElementById(`repayment-date-${loanId}`);
-                    if (repaymentInput) {
-                        repaymentInput.value = loan.expectedRepaymentDate;
-                    }
-                }
-                
-                calculateLoan(loanId);
-                updateSummary();
-                updateMultiDebtOverview();
-            }
-        }
+  // Kill order with rollover amounts
+  h+='<div style="background:white;padding:15px;border-radius:8px;border:2px solid #667eea;margin-bottom:15px;">';
+  h+='<div style="font-weight:bold;color:#667eea;margin-bottom:10px;">🎯 Kill Order (Rollover Strategy)</div>';
+  let rolledOver=0;
+  po.forEach((item,i)=>{
+    const loan=active.find(l=>l.name===item.name);
+    h+='<div class="payoff-item" style="background:'+(i%2?'white':'#f8f9ff')+';border-left-color:'+(pc[item.priority]||'#ccc')+'">';
+    h+='<div>';
+    h+='<span>'+(ti_map[item.debtType]||'📋')+'</span> <strong>'+(i+1)+'. '+item.name+'</strong>';
+    h+='<div style="font-size:0.8em;color:#666;margin-top:3px;">'+(item.rate>0?item.rate.toFixed(2)+'% APR':'0% Interest')+'</div>';
+    if(i>0&&rolledOver>0)h+='<div style="font-size:0.8em;color:#4caf50;margin-top:2px;">💪 +$'+fmt(rolledOver)+'/mo rolled in from paid debts</div>';
+    h+='</div>';
+    h+='<div style="text-align:right;"><div style="color:#667eea;font-weight:bold;">Month '+item.month+'</div><div style="font-size:0.75em;color:#999;">debt eliminated</div></div>';
+    h+='</div>';
+    if(loan)rolledOver+=loan.monthlyPayment;
+  });
+  h+='</div>';
 
-        function updateYearlyRate(loanId, value) {
-            const loan = loans.find(l => l.id === loanId);
-            if (loan) {
-                loan.yearlyRate = parseFloat(value) || 0;
-                loan.rate = loan.yearlyRate / 12;
-                
-                const monthlyRateInput = document.getElementById(`monthly-rate-${loanId}`);
-                if (monthlyRateInput) {
-                    monthlyRateInput.value = loan.rate.toFixed(2);
-                }
-                
-                calculateLoan(loanId);
-                updateSummary();
-                updateMultiDebtOverview();
-            }
-        }
+  // Full detailed schedule table
+  h+='<div style="background:white;padding:15px;border-radius:8px;border:2px solid #11998e;overflow-x:auto;">';
+  h+='<div style="font-weight:bold;color:#11998e;margin-bottom:5px;">📊 Full Amortization Schedule</div>';
+  h+='<div style="font-size:0.82em;margin-bottom:12px;padding:8px;background:#fffde7;border-radius:6px;border-left:3px solid #f57c00;">';
+  h+='<strong>🎯 = Target debt</strong> (gets all extra money) &nbsp;|&nbsp; Others pay minimum only &nbsp;|&nbsp; Once killed, that payment rolls to next target';
+  h+='</div>';
+  h+='<table style="width:100%;border-collapse:collapse;min-width:500px;font-size:0.82em;">';
+  h+='<thead><tr style="background:#11998e;color:white;">';
+  h+='<th style="padding:8px;text-align:left;white-space:nowrap;">Mo</th>';
+  active.forEach(l=>{h+='<th colspan="4" style="padding:8px;text-align:center;border-left:2px solid rgba(255,255,255,0.3);white-space:nowrap;">'+l.name+'</th>';});
+  h+='<th style="padding:8px;text-align:right;border-left:2px solid rgba(255,255,255,0.3);">Total</th></tr>';
+  h+='<tr style="background:#0d8a7a;color:rgba(255,255,255,0.9);font-size:0.78em;">';
+  h+='<th style="padding:5px 8px;"></th>';
+  active.forEach(()=>{
+    h+='<th style="padding:5px 6px;text-align:right;border-left:2px solid rgba(255,255,255,0.2);">Paid</th>';
+    h+='<th style="padding:5px 6px;text-align:right;">Int</th>';
+    h+='<th style="padding:5px 6px;text-align:right;">Prin</th>';
+    h+='<th style="padding:5px 6px;text-align:right;">Bal</th>';
+  });
+  h+='<th style="padding:5px 8px;border-left:2px solid rgba(255,255,255,0.2);"></th></tr></thead><tbody>';
 
-        function updateExpectedRepaymentDate(loanId, value) {
-            const loan = loans.find(l => l.id === loanId);
-            if (loan && value) {
-                loan.expectedRepaymentDate = value;
-                
-                // Calculate days from today to expected repayment date
-                const todayParts = loan.todayDate.split('-');
-                const todayDateObj = new Date(parseInt(todayParts[0]), parseInt(todayParts[1]) - 1, parseInt(todayParts[2]));
-                
-                const repayParts = value.split('-');
-                const repayDateObj = new Date(parseInt(repayParts[0]), parseInt(repayParts[1]) - 1, parseInt(repayParts[2]));
-                
-                const timeDiff = repayDateObj.getTime() - todayDateObj.getTime();
-                const daysDiff = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-                
-                loan.daysToAdd = daysDiff;
-                
-                // Update the days display
-                const daysInput = document.getElementById(`days-until-${loanId}`);
-                if (daysInput) {
-                    daysInput.value = daysDiff;
-                }
-                
-                calculateLoan(loanId);
-                updateSummary();
-                updateMultiDebtOverview();
-            }
-        }
+  months.forEach((md,mi)=>{
+    const bg=mi%2===0?'white':'#f8fffe';
+    h+='<tr style="background:'+bg+';border-bottom:1px solid #e0f2f0;">';
+    h+='<td style="padding:7px 8px;font-weight:600;color:#11998e;white-space:nowrap;">'+md.month+'</td>';
+    let rowTotal=0;
+    active.forEach(l=>{
+      const d=md.debts.find(x=>x.name===l.name);
+      if(d&&d.pay>0.01){
+        rowTotal+=d.pay;
+        const done=d.balance<0.5;
+        const isT=d.isTarget;
+        const cb=isT?(mi%2===0?'#fffde7':'#fff9c4'):bg;
+        h+='<td style="padding:6px;text-align:right;border-left:2px solid #e0f2f0;background:'+cb+';font-weight:'+(isT?'700':'400')+';color:'+(done?'#4caf50':isT?'#e65100':'#333')+'">'+(isT&&!done?'🎯':'')+(done?'✓':'')+'$'+fmt(d.pay)+'</td>';
+        h+='<td style="padding:6px;text-align:right;color:#f44336;background:'+cb+';">$'+fmt(d.interest)+'</td>';
+        h+='<td style="padding:6px;text-align:right;color:#4caf50;background:'+cb+';">$'+fmt(d.principal)+'</td>';
+        h+='<td style="padding:6px;text-align:right;font-weight:600;background:'+cb+';color:'+(done?'#4caf50':'#667eea')+'">'+(done?'DONE':'$'+fmt(d.balance))+'</td>';
+      } else {
+        h+='<td colspan="4" style="padding:6px;text-align:center;color:#4caf50;font-weight:600;border-left:2px solid #e0f2f0;font-size:0.85em;">✅ PAID OFF</td>';
+      }
+    });
+    h+='<td style="padding:6px 8px;text-align:right;font-weight:bold;color:#11998e;border-left:2px solid #e0f2f0;">$'+fmt(rowTotal)+'</td>';
+    h+='</tr>';
+  });
+  h+='</tbody></table></div>';
+  res.innerHTML=h;
+}
+function calcBudget(){
+  const s=parseFloat(document.getElementById('bSalary').value)||0;
+  const ex=parseFloat(document.getElementById('bExtra').value)||0;
+  const e=parseFloat(document.getElementById('bExpenses').value)||0;
+  const sv=parseFloat(document.getElementById('bSavings').value)||0;
+  const t=s+ex;const av=t-e-sv;const r=document.getElementById('budgetResult');
+  if(!t){r.innerHTML='';return;}
+  if(av<=0){r.innerHTML='<div style="background:#ffebee;padding:12px;border-radius:8px;color:#c62828;margin-top:10px;">⚠️ Expenses exceed income by $'+fmt(Math.abs(av))+'</div>';return;}
+  const pct=Math.round((av/t)*100);
+  r.innerHTML='<div class="available-box">'+
+    '<div style="font-size:0.9em;opacity:0.9;margin-bottom:5px;">Total Income: $'+fmt(t)+(ex>0?' ($'+fmt(s)+' salary + $'+fmt(ex)+' extra)':'')+'</div>'+
+    '<div style="font-size:0.85em;opacity:0.8;margin-bottom:10px;">Expenses: -$'+fmt(e)+(sv>0?' | Savings: -$'+fmt(sv):'')+'</div>'+
+    '<div style="font-size:0.9em;opacity:0.9;margin-bottom:5px;">💪 Available for Debt</div>'+
+    '<div style="font-size:2em;font-weight:bold;">$'+fmt(av)+'</div>'+
+    '<div style="font-size:0.85em;opacity:0.8;margin-top:5px;">'+pct+'% of your income</div>'+
+    '<button class="autofill-btn" onclick="autofill('+av+')">⬇️ Use This in Strategy Calculator</button></div>';
+}
+function autofill(a){document.getElementById('totalBudget').value=Math.round(a);runStrategy();document.getElementById('overviewCard').scrollIntoView({behavior:'smooth'});}
 
-        function calculateLoan(loanId) {
-            const loan = loans.find(l => l.id === loanId);
-            if (!loan || loan.principal === 0 || loan.months === 0) return;
+function calcConsolidation(){
+  const newRate=parseFloat(document.getElementById('consolidateRate').value)||0;
+  const newMonths=parseInt(document.getElementById('consolidateMonths').value)||0;
+  const res=document.getElementById('consolidationResults');
+  const active=loans.filter(l=>l.schedule);
+  if(!active.length||!newRate||!newMonths){res.innerHTML='';return;}
 
-            const monthlyPayment = calculateMonthlyPayment(loan.principal, loan.rate, loan.months);
-            const totalPayment = monthlyPayment * loan.months;
-            const totalInterest = totalPayment - loan.principal;
+  // Separate debts: high-interest (worth consolidating) vs low-interest (keep as is)
+  const newMonthlyRate=newRate/12;
+  const worthConsolidating=active.filter(l=>l.rate>newMonthlyRate);
+  const keepSeparate=active.filter(l=>l.rate<=newMonthlyRate);
 
-            loan.monthlyPayment = monthlyPayment;
-            loan.totalPayment = totalPayment;
-            loan.totalInterest = totalInterest;
-            loan.schedule = generateAmortizationSchedule(loan.principal, loan.rate, loan.months, monthlyPayment, loan);
+  if(worthConsolidating.length===0){
+    res.innerHTML='<div style="background:#e8f5e9;padding:12px;border-radius:8px;color:#2e7d32;font-weight:600;">✅ Your current rates are already lower than '+newRate+'%! No consolidation needed.</div>';
+    return;
+  }
 
-            currentSchedule = loan.schedule;
-            currentLoanData = loan;
+  // Total balance to consolidate
+  const consolidateAmount=worthConsolidating.reduce((s,l)=>s+l.principal,0);
 
-            renderLoanResults(loanId);
-        }
+  // New loan monthly payment
+  const r=newMonthlyRate/100;
+  const newMonthlyPayment=consolidateAmount*(r*Math.pow(1+r,newMonths))/(Math.pow(1+r,newMonths)-1);
+  const newTotalPayment=newMonthlyPayment*newMonths;
+  const newTotalInterest=newTotalPayment-consolidateAmount;
 
-        function renderLoanResults(loanId) {
-            const loan = loans.find(l => l.id === loanId);
-            const resultsDiv = document.getElementById(`results-${loanId}`);
-            
-            if (!loan.monthlyPayment) {
-                resultsDiv.innerHTML = '';
-                return;
-            }
+  // What you'd pay WITHOUT consolidation (original plans)
+  const oldTotalInterest=worthConsolidating.reduce((s,l)=>s+l.totalInterest,0);
+  const oldMonthlyPayment=worthConsolidating.reduce((s,l)=>s+l.monthlyPayment,0);
+  const interestSaved=oldTotalInterest-newTotalInterest;
+  const monthlySaved=oldMonthlyPayment-newMonthlyPayment;
 
-            resultsDiv.innerHTML = `
-                <div class="results">
-                    <div style="background: #f8f9ff; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
-                        <div class="result-row">
-                            <span class="result-label">Monthly Payment:</span>
-                            <span class="result-value">$${formatCurrency(loan.monthlyPayment, 0)}</span>
-                        </div>
-                        <div class="result-row">
-                            <span class="result-label">Total Interest:</span>
-                            <span class="result-value">$${formatCurrency(loan.totalInterest, 0)}</span>
-                        </div>
-                        <div class="result-row">
-                            <span class="result-label">Total Payment:</span>
-                            <span class="result-value">$${formatCurrency(loan.totalPayment, 0)}</span>
-                        </div>
-                    </div>
-                    <button class="toggle-schedule" onclick="toggleSchedule('${loanId}')">
-                        View Payment Schedule
-                    </button>
-                    <div class="schedule-container" id="schedule-${loanId}">
-                        <p style="color: #667eea; font-size: 0.9em; margin-bottom: 10px; font-style: italic;">
-                            💡 Click on any month for details
-                        </p>
-                        ${generateScheduleTable(loan.schedule, loanId)}
-                    </div>
-                </div>
-            `;
-        }
+  // Budget freed up for remaining debts
+  const remainingDebtPayment=keepSeparate.reduce((s,l)=>s+l.monthlyPayment,0);
+  const totalNewMonthly=newMonthlyPayment+remainingDebtPayment;
 
-        function generateScheduleTable(schedule, loanId) {
-            let html = '<div style="background: white; border-radius: 12px; padding: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-top: 10px; overflow: hidden; max-width: 100%;">';
-            html += '<div style="overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%;">';
-            html += '<table class="amortization-table" style="margin: 0; max-width: 100%;"><thead><tr>';
-            html += '<th>Month</th><th>Payment Date</th><th>Days Left</th><th>Payment</th><th>Principal</th><th>Interest</th><th>Balance</th><th>Early Payoff</th>';
-            html += '</tr></thead><tbody>';
+  const ti_map={'credit-card':'💳','personal-loan':'🏦','family-loan':'👨‍👩‍👧','pawn':'💎','other':'📋'};
 
-            schedule.forEach((row, index) => {
-                let dateStr = '-';
-                if (row.paymentDate) {
-                    const year = row.paymentDate.getFullYear();
-                    const month = row.paymentDate.toLocaleString('en-US', { month: 'short' });
-                    const day = row.paymentDate.getDate();
-                    dateStr = `${month} ${day}, ${year}`;
-                }
-                
-                const daysLeftStr = row.daysFromToday !== null ? `${row.daysFromToday} days` : '-';
-                const daysLeftColor = row.daysFromToday !== null && row.daysFromToday < 7 ? '#ff4444' : row.daysFromToday < 14 ? '#ff9800' : '#666';
-                
-                html += `<tr onclick="showWorkings('${loanId}', ${index})" style="background: ${index % 2 === 0 ? 'white' : '#f8f9ff'};">
-                    <td>${row.month}</td>
-                    <td>${dateStr}</td>
-                    <td style="color: ${daysLeftColor}; font-weight: 600;">${daysLeftStr}</td>
-                    <td>$${formatCurrency(row.payment, 0)}</td>
-                    <td>$${formatCurrency(row.principal, 0)}</td>
-                    <td>$${formatCurrency(row.interest, 0)}</td>
-                    <td>$${formatCurrency(row.balance, 0)}</td>
-                    <td style="color: #28a745; font-weight: 600;">$${formatCurrency(row.earlyPayoff, 0)}</td>
-                </tr>`;
-            });
+  let h='';
 
-            html += '</tbody></table></div></div>';
-            return html;
-        }
+  // Recommendation header
+  if(interestSaved>0){
+    h+='<div style="background:#e8f5e9;padding:15px;border-radius:8px;margin-bottom:15px;border:2px solid #4caf50;">';
+    h+='<div style="font-weight:bold;color:#2e7d32;font-size:1.1em;margin-bottom:5px;">✅ Consolidation Recommended!</div>';
+    h+='<div style="font-size:0.9em;color:#388e3c;">You\'d save <strong>$'+fmt(interestSaved)+'</strong> in interest and <strong>$'+fmt(monthlySaved)+'</strong>/month in payments</div>';
+    h+='</div>';
+  } else {
+    h+='<div style="background:#ffebee;padding:15px;border-radius:8px;margin-bottom:15px;border:2px solid #f44336;">';
+    h+='<div style="font-weight:bold;color:#c62828;font-size:1.1em;margin-bottom:5px;">⚠️ Not Worth It</div>';
+    h+='<div style="font-size:0.9em;color:#d32f2f;">At '+newRate+'% you\'d pay <strong>$'+fmt(Math.abs(interestSaved))+'</strong> MORE in interest. Try a lower rate.</div>';
+    h+='</div>';
+  }
 
-        function toggleSchedule(loanId) {
-            const scheduleDiv = document.getElementById(`schedule-${loanId}`);
-            scheduleDiv.classList.toggle('show');
-        }
+  // The loan amount
+  h+='<div style="background:#fce4ec;padding:15px;border-radius:8px;margin-bottom:15px;text-align:center;">';
+  h+='<div style="font-size:0.9em;color:#880e4f;margin-bottom:5px;">💰 Preferred Consolidation Loan Amount</div>';
+  h+='<div style="font-size:2.2em;font-weight:bold;color:#c2185b;">$'+fmt(consolidateAmount)+'</div>';
+  h+='<div style="font-size:0.85em;color:#ad1457;margin-top:5px;">at '+newRate+'% over '+newMonths+' months</div>';
+  h+='</div>';
 
-        function showWorkings(loanId, monthIndex) {
-            const loan = loans.find(l => l.id === loanId);
-            if (!loan || !loan.schedule) return;
+  // Side by side comparison
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px;">';
+  h+='<div style="background:#ffebee;padding:12px;border-radius:8px;">';
+  h+='<div style="font-weight:bold;color:#c62828;margin-bottom:8px;font-size:0.9em;">❌ WITHOUT Consolidation</div>';
+  h+='<div style="font-size:0.85em;color:#666;margin-bottom:4px;">Monthly Payment:</div>';
+  h+='<div style="font-weight:bold;color:#c62828;margin-bottom:8px;">$'+fmt(oldMonthlyPayment)+'/mo</div>';
+  h+='<div style="font-size:0.85em;color:#666;margin-bottom:4px;">Total Interest:</div>';
+  h+='<div style="font-weight:bold;color:#c62828;">$'+fmt(oldTotalInterest)+'</div>';
+  h+='</div>';
+  h+='<div style="background:#e8f5e9;padding:12px;border-radius:8px;">';
+  h+='<div style="font-weight:bold;color:#2e7d32;margin-bottom:8px;font-size:0.9em;">✅ WITH Consolidation</div>';
+  h+='<div style="font-size:0.85em;color:#666;margin-bottom:4px;">Monthly Payment:</div>';
+  h+='<div style="font-weight:bold;color:#2e7d32;margin-bottom:8px;">$'+fmt(newMonthlyPayment)+'/mo</div>';
+  h+='<div style="font-size:0.85em;color:#666;margin-bottom:4px;">Total Interest:</div>';
+  h+='<div style="font-weight:bold;color:#2e7d32;">$'+fmt(newTotalInterest)+'</div>';
+  h+='</div></div>';
 
-            currentLoanData = loan;
-            currentSchedule = loan.schedule;
-            
-            const month = loan.schedule[monthIndex];
-            const prevBalance = monthIndex === 0 ? loan.principal : loan.schedule[monthIndex - 1].balance;
+  // Which debts to consolidate
+  h+='<div style="background:#f8f9ff;padding:12px;border-radius:8px;margin-bottom:12px;">';
+  h+='<div style="font-weight:bold;color:#667eea;margin-bottom:10px;">🎯 Debts to Consolidate (rate > '+newRate+'%)</div>';
+  worthConsolidating.forEach(l=>{
+    h+='<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #e8eaff;font-size:0.9em;">';
+    h+='<span>'+(ti_map[l.debtType]||'📋')+' '+l.name+' <span style="color:#f44336;">('+l.yearlyRate.toFixed(1)+'% APR)</span></span>';
+    h+='<span style="font-weight:bold;color:#667eea;">$'+fmt(l.principal)+'</span>';
+    h+='</div>';
+  });
+  h+='<div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:bold;">';
+  h+='<span>Total to consolidate:</span><span style="color:#c2185b;">$'+fmt(consolidateAmount)+'</span>';
+  h+='</div></div>';
 
-            const modalBody = document.getElementById('modalBody');
-            modalBody.innerHTML = `
-                <h3>Month ${month.month} Payment Details</h3>
-                
-                ${month.paymentDate && month.daysFromToday !== null ? `
-                <div class="simple-row" style="background: ${month.daysFromToday < 7 ? '#ffebee' : month.daysFromToday < 14 ? '#fff3e0' : '#e3f2fd'}; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
-                    <span style="font-size: 0.95em;">📅 <strong>Due:</strong> ${month.paymentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                    <span style="color: ${month.daysFromToday < 7 ? '#d32f2f' : month.daysFromToday < 14 ? '#f57c00' : '#1976d2'}; font-weight: bold; font-size: 1.2em;">${month.daysFromToday} days left</span>
-                </div>
-                ` : ''}
-                
-                <div class="simple-row" style="padding: 15px 0; border-bottom: 2px solid #667eea;">
-                    <span style="font-size: 1.1em;"><strong>💳 Monthly Payment</strong></span>
-                    <span style="font-size: 1.5em; font-weight: bold; color: #667eea;">$${formatCurrency(month.payment, 0)}</span>
-                </div>
-                
-                <div class="simple-row">
-                    <span>Interest</span>
-                    <span style="color: #ff5722;">$${formatCurrency(month.interest, 0)}</span>
-                </div>
-                
-                <div class="simple-row">
-                    <span>Principal</span>
-                    <span style="color: #4caf50;">$${formatCurrency(month.principal, 0)}</span>
-                </div>
-                
-                <div class="simple-row" style="border-bottom: 2px solid #e0e0e0; padding-bottom: 12px; margin-bottom: 15px;">
-                    <span>Remaining Balance</span>
-                    <span>$${formatCurrency(month.balance, 0)}</span>
-                </div>
-                
-                <div class="highlight-section">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                        <span><strong>⚡ Pay Off Early</strong></span>
-                        <span style="color: #28a745; font-weight: bold; font-size: 1.4em;">$${formatCurrency(month.earlyPayoff, 0)}</span>
-                    </div>
-                    <div style="font-size: 0.9em; color: #2e7d32;">
-                        💡 Save $${formatCurrency((loan.totalInterest - month.interest - loan.schedule.slice(0, monthIndex).reduce((sum, m) => sum + m.interest, 0)), 0)} in future interest
-                    </div>
-                </div>
-                
-                <div class="highlight-section blue">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                        <span><strong>📅 Daily Savings Needed</strong></span>
-                        <span style="color: #1976d2; font-weight: bold; font-size: 1.4em;">$${formatCurrency(month.dailySavings, 0)}/day</span>
-                    </div>
-                    ${month.daysFromToday !== null ? `
-                    <div style="font-size: 0.9em; color: #1565c0;">
-                        Save $${formatCurrency(month.dailySavings, 0)} daily for ${month.daysFromToday} days = $${formatCurrency(month.dailySavings * month.daysFromToday, 0)}
-                    </div>
-                    ` : ''}
-                </div>
+  if(keepSeparate.length>0){
+    h+='<div style="background:#f8f9ff;padding:12px;border-radius:8px;margin-bottom:12px;">';
+    h+='<div style="font-weight:bold;color:#4caf50;margin-bottom:10px;">✅ Keep These Separately (rate ≤ '+newRate+'%)</div>';
+    keepSeparate.forEach(l=>{
+      h+='<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #e8f5e9;font-size:0.9em;">';
+      h+='<span>'+(ti_map[l.debtType]||'📋')+' '+l.name+' <span style="color:#4caf50;">('+l.yearlyRate.toFixed(1)+'% APR)</span></span>';
+      h+='<span style="font-weight:bold;">$'+fmt(l.principal)+'</span>';
+      h+='</div>';
+    });
+    h+='</div>';
+  }
 
-                <button class="workings-toggle-btn" onclick="toggleDetailedWorkings()">
-                    <span id="toggle-text">📊 Show Detailed Calculations</span>
-                </button>
+  // New total monthly after consolidation
+  h+='<div style="background:linear-gradient(135deg,#667eea,#764ba2);padding:15px;border-radius:8px;color:white;text-align:center;">';
+  h+='<div style="font-size:0.9em;opacity:0.9;margin-bottom:5px;">Your New Total Monthly Payment</div>';
+  h+='<div style="font-size:1.8em;font-weight:bold;">$'+fmt(totalNewMonthly)+'/mo</div>';
+  h+='<div style="font-size:0.8em;opacity:0.8;margin-top:5px;">New loan: $'+fmt(newMonthlyPayment)+' + Other debts: $'+fmt(remainingDebtPayment)+'</div>';
+  if(monthlySaved>0)h+='<div style="background:rgba(255,255,255,0.2);padding:8px;border-radius:6px;margin-top:10px;font-size:0.9em;">💚 Save $'+fmt(monthlySaved)+'/mo vs current payments</div>';
+  h+='</div>';
 
-                <div class="detailed-workings" id="detailed-workings">
-                    <div class="calc-step"><strong>Interest Calculation:</strong></div>
-                    <div class="calc-step">$${formatCurrency(prevBalance, 0)} × ${loan.rate.toFixed(2)}% = $${formatCurrency(month.interest, 0)}</div>
-                    
-                    <div class="calc-step" style="margin-top: 10px;"><strong>Principal Payment:</strong></div>
-                    <div class="calc-step">$${formatCurrency(month.payment, 0)} - $${formatCurrency(month.interest, 0)} = $${formatCurrency(month.principal, 0)}</div>
-                    
-                    <div class="calc-step" style="margin-top: 10px;"><strong>New Balance:</strong></div>
-                    <div class="calc-step">$${formatCurrency(prevBalance, 0)} - $${formatCurrency(month.principal, 0)} = $${formatCurrency(month.balance, 0)}</div>
-                    
-                    <div class="calc-step" style="margin-top: 10px;"><strong>Early Payoff:</strong></div>
-                    <div class="calc-step">$${formatCurrency(month.balance, 0)} + $${formatCurrency(month.interest, 0)} = $${formatCurrency(month.earlyPayoff, 0)}</div>
-                </div>
-            `;
-
-            document.getElementById('workingsModal').classList.add('show');
-        }
-
-        function toggleDetailedWorkings() {
-            const detailedSection = document.getElementById('detailed-workings');
-            const toggleText = document.getElementById('toggle-text');
-            
-            if (detailedSection.classList.contains('show')) {
-                detailedSection.classList.remove('show');
-                toggleText.textContent = '📊 Show Detailed Calculations';
-            } else {
-                detailedSection.classList.add('show');
-                toggleText.textContent = '📊 Hide Detailed Calculations';
-            }
-        }
-
-        function closeModal() {
-            document.getElementById('workingsModal').classList.remove('show');
-        }
-
-        document.getElementById('workingsModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeModal();
-            }
-        });
-
-        function renderLoans() {
-            const grid = document.getElementById('loansGrid');
-            
-            // Save the state of which schedules are visible
-            const scheduleStates = {};
-            loans.forEach(loan => {
-                const scheduleDiv = document.getElementById(`schedule-${loan.id}`);
-                if (scheduleDiv) {
-                    scheduleStates[loan.id] = scheduleDiv.classList.contains('show');
-                }
-            });
-            
-            grid.innerHTML = '';
-
-            loans.forEach((loan, index) => {
-                const card = document.createElement('div');
-                card.className = 'loan-card';
-                card.innerHTML = `
-                    ${loans.length > 1 ? `<button class="remove-btn" onclick="removeLoan('${loan.id}')">×</button>` : ''}
-                    <h3>Debt ${index + 1}</h3>
-                    
-                    <div class="input-group">
-                        <label>Creditor/Lender Name</label>
-                        <input type="text" value="${loan.name}" 
-                               onfocus="if(this.value.startsWith('Creditor')) this.value=''"
-                               onchange="updateLoan('${loan.id}', 'name', this.value)">
-                    </div>
-                    
-                    <div class="input-group">
-                        <label>Today's Date</label>
-                        <input type="date" value="${loan.todayDate || new Date().toISOString().split('T')[0]}" 
-                               id="today-date-${loan.id}"
-                               onchange="updateLoan('${loan.id}', 'todayDate', this.value)">
-                    </div>
-                    
-                    <div class="input-group">
-                        <label>Statement Generated Date</label>
-                        <input type="date" value="${loan.statementDate || ''}" 
-                               id="statement-date-${loan.id}"
-                               onchange="updateLoan('${loan.id}', 'statementDate', this.value)">
-                        <small>When the statement was issued</small>
-                    </div>
-                    
-                    <div class="input-group">
-                        <label>Expected First Repayment Date</label>
-                        <input type="date" value="${loan.expectedRepaymentDate || ''}" 
-                               id="repayment-date-${loan.id}"
-                               onchange="updateExpectedRepaymentDate('${loan.id}', this.value)">
-                        <small style="color: #28a745; font-weight: 600;">When is your payment due?</small>
-                    </div>
-                    
-                    <div class="input-group">
-                        <label>Days Until Payment</label>
-                        <input type="number" value="${loan.daysToAdd || ''}" 
-                               id="days-until-${loan.id}"
-                               readonly
-                               style="background: #f0f0f0; cursor: not-allowed;">
-                        <small>Auto-calculated: Expected Date - Today</small>
-                    </div>
-                    
-                    <div class="input-group">
-                        <label>Debt Amount ($)</label>
-                        <input type="number" value="${loan.principal || ''}" 
-                               onchange="updateLoan('${loan.id}', 'principal', this.value)"
-                               placeholder="e.g., 12890">
-                    </div>
-                    
-                    <div class="input-group">
-                        <label>Yearly Interest Rate (%)</label>
-                        <input type="number" step="0.01" value="${loan.yearlyRate || ''}" 
-                               onchange="updateYearlyRate('${loan.id}', this.value)"
-                               placeholder="e.g., 48">
-                    </div>
-                    
-                    <div class="input-group">
-                        <label>Monthly Interest Rate (%)</label>
-                        <input type="number" step="0.01" value="${loan.rate || ''}" 
-                               id="monthly-rate-${loan.id}"
-                               readonly
-                               style="background: #f0f0f0; cursor: not-allowed;"
-                               placeholder="Auto-calculated">
-                    </div>
-                    
-                    <div class="input-group">
-                        <label>Repayment Period (Months)</label>
-                        <input type="number" value="${loan.months || ''}" 
-                               onchange="updateLoan('${loan.id}', 'months', this.value)"
-                               placeholder="e.g., 10">
-                    </div>
-                    
-                    <div id="results-${loan.id}"></div>
-                `;
-                grid.appendChild(card);
-                
-                // Re-render results if they exist
-                if (loan.monthlyPayment) {
-                    renderLoanResults(loan.id);
-                    
-                    // Restore the schedule visibility state
-                    if (scheduleStates[loan.id]) {
-                        setTimeout(() => {
-                            const scheduleDiv = document.getElementById(`schedule-${loan.id}`);
-                            if (scheduleDiv) {
-                                scheduleDiv.classList.add('show');
-                            }
-                        }, 10);
-                    }
-                }
-            });
-
-            if (loans.length === 0) {
-                addLoan();
-            }
-        }
-
-        function updateSummary() {
-            let totalBorrowed = 0;
-            let totalInterest = 0;
-            let totalPayment = 0;
-            let combinedMonthly = 0;
-
-            loans.forEach(loan => {
-                if (loan.monthlyPayment) {
-                    totalBorrowed += loan.principal;
-                    totalInterest += loan.totalInterest;
-                    totalPayment += loan.totalPayment;
-                    combinedMonthly += loan.monthlyPayment;
-                }
-            });
-
-            document.getElementById('totalBorrowed').textContent = `$${formatCurrency(totalBorrowed, 0)}`;
-            document.getElementById('totalInterest').textContent = `$${formatCurrency(totalInterest, 0)}`;
-            document.getElementById('totalPayment').textContent = `$${formatCurrency(totalPayment, 0)}`;
-            document.getElementById('combinedMonthly').textContent = `$${formatCurrency(combinedMonthly, 0)}`;
-        }
-
-        function updateMultiDebtOverview() {
-            const activeLoans = loans.filter(l => l.monthlyPayment && l.schedule);
-            
-            if (activeLoans.length <= 1) {
-                document.getElementById('multiDebtOverview').style.display = 'none';
-                return;
-            }
-
-            document.getElementById('multiDebtOverview').style.display = 'block';
-
-            let totalMonthly = 0;
-            let totalDailySavings = 0;
-            let totalDebt = 0;
-            let nextPayment = null;
-            let nextPaymentDays = Infinity;
-            let month1Total = 0; // Total payment needed for Month 1
-
-            const priorityDebts = [];
-
-            activeLoans.forEach(loan => {
-                totalMonthly += loan.monthlyPayment;
-                totalDebt += loan.schedule[0].balance + loan.schedule[0].principal;
-                month1Total += loan.schedule[0].payment; // Add Month 1 payment
-                
-                if (loan.schedule[0] && loan.schedule[0].daysFromToday !== null) {
-                    totalDailySavings += loan.schedule[0].dailySavings;
-                    
-                    if (loan.schedule[0].daysFromToday < nextPaymentDays) {
-                        nextPaymentDays = loan.schedule[0].daysFromToday;
-                        nextPayment = {
-                            date: loan.schedule[0].paymentDate,
-                            days: loan.schedule[0].daysFromToday
-                        };
-                    }
-
-                    priorityDebts.push({
-                        name: loan.name,
-                        daysLeft: loan.schedule[0].daysFromToday,
-                        dailySavings: loan.schedule[0].dailySavings,
-                        monthlyPayment: loan.monthlyPayment,
-                        month1Payment: loan.schedule[0].payment,
-                        date: loan.schedule[0].paymentDate
-                    });
-                }
-            });
-
-            // Sort by days left (ascending)
-            priorityDebts.sort((a, b) => a.daysLeft - b.daysLeft);
-
-            document.getElementById('totalMonthlyAll').textContent = `$${formatCurrency(totalMonthly, 0)}`;
-            document.getElementById('avgDailySavings').textContent = `$${formatCurrency(totalDailySavings, 0)}/day`;
-            document.getElementById('totalDebtRemaining').textContent = `$${formatCurrency(totalDebt, 0)}`;
-            
-            if (nextPayment) {
-                const dateStr = nextPayment.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                document.getElementById('nextPaymentDue').textContent = `${dateStr} (${nextPayment.days} days)`;
-            }
-
-            // Render priority list with Month 1 breakdown
-            const priorityList = document.getElementById('priorityList');
-            priorityList.innerHTML = '';
-
-            // Add Month 1 Summary at the top
-            const month1Summary = document.createElement('li');
-            month1Summary.className = 'priority-item';
-            month1Summary.style.background = '#e8f5e9';
-            month1Summary.style.borderLeft = '4px solid #4caf50';
-            month1Summary.innerHTML = `
-                <div style="text-align: center;">
-                    <div style="font-size: 0.9em; color: #2e7d32; margin-bottom: 8px;">💰 <strong>MONTH 1 TOTAL NEEDED</strong></div>
-                    <div style="font-size: 2em; font-weight: bold; color: #4caf50; margin-bottom: 5px;">
-                        $${formatCurrency(month1Total, 0)}
-                    </div>
-                    <div style="font-size: 0.85em; color: #2e7d32; margin-bottom: 10px;">
-                        Save $${formatCurrency(totalDailySavings, 0)}/day × ${nextPayment ? nextPayment.days : '30'} days
-                    </div>
-                    <div style="background: white; padding: 10px; border-radius: 6px; margin-top: 10px;">
-                        <div style="font-size: 0.85em; color: #666; margin-bottom: 5px;">Daily Savings Breakdown:</div>
-                        ${priorityDebts.map((debt, idx) => `
-                            <div style="display: flex; justify-content: space-between; padding: 3px 0; font-size: 0.85em;">
-                                <span style="color: #333;">${debt.name}</span>
-                                <span style="font-weight: 600; color: #4caf50;">$${formatCurrency(debt.dailySavings, 0)}/day</span>
-                            </div>
-                        `).join('')}
-                        <div style="border-top: 2px solid #4caf50; margin-top: 5px; padding-top: 5px; display: flex; justify-content: space-between; font-weight: bold;">
-                            <span style="color: #2e7d32;">TOTAL PER DAY:</span>
-                            <span style="color: #4caf50; font-size: 1.1em;">$${formatCurrency(totalDailySavings, 0)}</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-            priorityList.appendChild(month1Summary);
-
-            // Add individual debt breakdown
-            priorityDebts.forEach((debt, index) => {
-                const urgencyClass = debt.daysLeft < 7 ? 'urgent' : debt.daysLeft < 14 ? 'soon' : '';
-                const dateStr = debt.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                
-                const li = document.createElement('li');
-                li.className = `priority-item ${urgencyClass}`;
-                li.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <strong>${index + 1}. ${debt.name}</strong><br>
-                            <span style="font-size: 0.9em;">Due ${dateStr} (${debt.daysLeft} days) • Month 1: $${formatCurrency(debt.month1Payment, 0)}</span>
-                        </div>
-                        <div style="text-align: right;">
-                            <div style="font-size: 1.2em; font-weight: bold; color: ${urgencyClass === 'urgent' ? '#d32f2f' : urgencyClass === 'soon' ? '#f57c00' : '#667eea'};">
-                                $${formatCurrency(debt.dailySavings, 0)}/day
-                            </div>
-                        </div>
-                    </div>
-                `;
-                priorityList.appendChild(li);
-            });
-        }
-
-        // Initialize with one loan
-        addLoan();
-    </script>
+  res.innerHTML=h;
+}
+addLoan();
+</script>
 </body>
 </html>
