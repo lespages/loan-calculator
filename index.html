@@ -404,9 +404,20 @@ function runStrategy(){
   // Full detailed schedule table
   h+='<div style="background:white;padding:15px;border-radius:8px;border:2px solid #11998e;overflow-x:auto;">';
   h+='<div style="font-weight:bold;color:#11998e;margin-bottom:5px;">📊 Full Amortization Schedule</div>';
-  h+='<div style="font-size:0.82em;margin-bottom:12px;padding:8px;background:#fffde7;border-radius:6px;border-left:3px solid #f57c00;">';
+  h+='<div style="font-size:0.82em;margin-bottom:8px;padding:8px;background:#fffde7;border-radius:6px;border-left:3px solid #f57c00;">';
   h+='<strong>🎯 = Target debt</strong> (gets all extra money) &nbsp;|&nbsp; Others pay minimum only &nbsp;|&nbsp; Once killed, that payment rolls to next target';
   h+='</div>';
+
+  // Check for "stuck" debts - where minimum payment barely covers or doesn't cover interest
+  const stuckDebts=active.filter(l=>{
+    const monthlyInt=l.principal*(l.rate/100);
+    return l.monthlyPayment<=monthlyInt+0.5;
+  });
+  if(stuckDebts.length>0){
+    h+='<div style="font-size:0.82em;margin-bottom:12px;padding:10px;background:#ffebee;border-radius:6px;border-left:3px solid #f44336;">';
+    h+='⚠️ <strong>'+stuckDebts.map(l=>l.name).join(', ')+'</strong> '+(stuckDebts.length===1?'has':'have')+' a minimum payment that barely covers interest — '+(stuckDebts.length===1?'its':'their')+' balance stays flat (Principal ≈ $0, highlighted in red) until '+(stuckDebts.length===1?'it':'they')+' become'+(stuckDebts.length===1?'s':'')+' the 🎯 target debt and gets the rolled-over extra payment. This is normal, not a bug — but it means until then, that debt is going nowhere.';
+    h+='</div>';
+  }
   h+='<table style="width:100%;border-collapse:collapse;min-width:500px;font-size:0.82em;">';
   h+='<thead><tr style="background:#11998e;color:white;">';
   h+='<th style="padding:8px;text-align:left;white-space:nowrap;">Mo</th>';
@@ -433,10 +444,11 @@ function runStrategy(){
         rowTotal+=d.pay;
         const done=d.balance<0.5;
         const isT=d.isTarget;
-        const cb=isT?(mi%2===0?'#fffde7':'#fff9c4'):bg;
+        const stuck=!done&&!isT&&d.principal<0.5;
+        const cb=isT?(mi%2===0?'#fffde7':'#fff9c4'):stuck?(mi%2===0?'#ffebee':'#ffe0e0'):bg;
         h+='<td style="padding:6px;text-align:right;border-left:2px solid #e0f2f0;background:'+cb+';font-weight:'+(isT?'700':'400')+';color:'+(done?'#4caf50':isT?'#e65100':'#333')+'">'+(isT&&!done?'🎯':'')+(done?'✓':'')+'$'+fmt(d.pay)+'</td>';
         h+='<td style="padding:6px;text-align:right;color:#f44336;background:'+cb+';">$'+fmt(d.interest)+'</td>';
-        h+='<td style="padding:6px;text-align:right;color:#4caf50;background:'+cb+';">$'+fmt(d.principal)+'</td>';
+        h+='<td style="padding:6px;text-align:right;color:'+(stuck?'#f44336':'#4caf50')+';background:'+cb+';font-weight:'+(stuck?'700':'400')+';">'+(stuck?'⚠️ ':'')+'$'+fmt(d.principal)+'</td>';
         h+='<td style="padding:6px;text-align:right;font-weight:600;background:'+cb+';color:'+(done?'#4caf50':'#667eea')+'">'+(done?'DONE':'$'+fmt(d.balance))+'</td>';
       } else {
         h+='<td colspan="4" style="padding:6px;text-align:center;color:#4caf50;font-weight:600;border-left:2px solid #e0f2f0;font-size:0.85em;">✅ PAID OFF</td>';
@@ -507,14 +519,25 @@ function calcConsolidation(){
   const newTotalPayment=newMonthlyPayment*newMonths;
   const newTotalInterest=newTotalPayment-loanAmount;
 
-  // Old situation for debts that get touched
+  // Old situation for debts that get touched - compare over the SAME period (newMonths)
   const touchedLoans=allocations.filter(a=>a.amount>0).map(a=>a.loan);
   const oldMonthlyTouched=touchedLoans.reduce((s,l)=>s+l.monthlyPayment,0);
-  const oldInterestTouched=touchedLoans.reduce((s,l)=>{
-    // for partial payoff, approximate interest proportionally
-    const alloc=allocations.find(a=>a.loan===l);
-    const portion=alloc.amount/l.principal;
-    return s+l.totalInterest*portion;
+
+  // For a fair comparison, simulate what interest you'd pay on the OLD debts
+  // over the SAME number of months as the new loan, using their CURRENT minimum payments
+  const oldInterestOverSamePeriod=touchedLoans.reduce((s,l)=>{
+    let bal=l.principal;
+    const r=l.rate/100;
+    let totalInt=0;
+    for(let m=0;m<newMonths;m++){
+      if(bal<=0)break;
+      const int=bal*r;
+      const pr=Math.min(l.monthlyPayment-int,bal);
+      if(pr<=0){totalInt+=int;break;} // can't make progress, interest-only
+      bal-=pr;
+      totalInt+=int;
+    }
+    return s+totalInt;
   },0);
 
   // Remaining payment for partially-paid debts (on the leftover balance, same rate/term)
@@ -532,7 +555,7 @@ function calcConsolidation(){
   const totalNewMonthly=newMonthlyPayment+partialRemainingMonthly+untouchedMonthly;
   const oldTotalMonthly=active.reduce((s,l)=>s+l.monthlyPayment,0);
   const monthlySaved=oldTotalMonthly-totalNewMonthly;
-  const interestSaved=oldInterestTouched-newTotalInterest;
+  const interestSaved=oldInterestOverSamePeriod-newTotalInterest;
 
   let h='';
 
@@ -590,12 +613,12 @@ function calcConsolidation(){
   if(interestSaved>0){
     h+='<div style="background:#e8f5e9;padding:15px;border-radius:8px;margin-bottom:15px;border:2px solid #4caf50;">';
     h+='<div style="font-weight:bold;color:#2e7d32;font-size:1.05em;margin-bottom:5px;">✅ Worth It</div>';
-    h+='<div style="font-size:0.9em;color:#388e3c;">Estimated interest saved on consolidated portion: <strong>$'+fmt(interestSaved)+'</strong></div>';
+    h+='<div style="font-size:0.9em;color:#388e3c;">Over the same '+newMonths+'-month period, you\'d pay <strong>$'+fmt(interestSaved)+' less interest</strong> with the new loan vs. sticking with your current rates.</div>';
     h+='</div>';
   } else {
     h+='<div style="background:#ffebee;padding:15px;border-radius:8px;margin-bottom:15px;border:2px solid #f44336;">';
     h+='<div style="font-weight:bold;color:#c62828;font-size:1.05em;margin-bottom:5px;">⚠️ Check the EIR</div>';
-    h+='<div style="font-size:0.9em;color:#d32f2f;">At ~'+eirPct.toFixed(2)+'% EIR, this may cost <strong>$'+fmt(Math.abs(interestSaved))+'</strong> more than your current rates on the consolidated portion.</div>';
+    h+='<div style="font-size:0.9em;color:#d32f2f;">Over the same '+newMonths+'-month period, the new loan at ~'+eirPct.toFixed(2)+'% EIR would cost <strong>$'+fmt(Math.abs(interestSaved))+' more</strong> in interest than your current rates.</div>';
     h+='</div>';
   }
 
